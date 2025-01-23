@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{EF11C012-D35A-4373-948D-6F371678C267}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="DTMultiplus.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Demo\DTDemoMultiplus.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="DTMultiplus">
+        <MSBuild Projects="DTMultiplus.dproj"/>
+    </Target>
+    <Target Name="DTMultiplus:Clean">
+        <MSBuild Projects="DTMultiplus.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DTMultiplus:Make">
+        <MSBuild Projects="DTMultiplus.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DTDemoMultiplus">
+        <MSBuild Projects="Demo\DTDemoMultiplus.dproj"/>
+    </Target>
+    <Target Name="DTDemoMultiplus:Clean">
+        <MSBuild Projects="Demo\DTDemoMultiplus.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DTDemoMultiplus:Make">
+        <MSBuild Projects="Demo\DTDemoMultiplus.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="DTMultiplus;DTDemoMultiplus"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="DTMultiplus:Clean;DTDemoMultiplus:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="DTMultiplus:Make;DTDemoMultiplus:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
