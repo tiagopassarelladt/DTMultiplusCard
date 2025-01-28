@@ -12,7 +12,8 @@ uses
   Vcl.Dialogs,
   Vcl.StdCtrls,
   Vcl.Controls,
-  uFuncoesDLL,
+  System.RegularExpressions,
+  system.IniFiles,
   Vcl.Graphics;
 
 
@@ -30,6 +31,72 @@ TOnQrCode      = procedure(Sender: TObject; const Conteudo: string) of object;
 TOnCPF         = procedure(Sender: TObject; const Conteudo: string) of object;
 TOnErro        = procedure(Sender: TObject; const Conteudo: string) of object;
 
+type TMultConfig = class(TPersistent)
+   private
+    FPDV         : String;
+    FCNPJ        : string;
+    FCodLoja     : string;
+    FComunicacao : string;
+    FData        : string;
+
+   published
+    property Comunicacao    : string                      read FComunicacao             write FComunicacao;
+    property CNPJ           : string                      read FCNPJ                    write FCNPJ;
+    property CodLoja        : string                      read FCodLoja                 write FCodLoja;
+    property Data           : string                      read FData                    write FData;
+    property PDV            : String                      read FPDV                     write FPDV;
+end;
+
+type TMultRetorno = class(TPersistent)
+
+   private
+    FCAMPO9999: string;
+    FCAMPO0950: string;
+    FCAMPO0002: string;
+    FCAMPO0003: string;
+    FCAMPO0160: string;
+    FCAMPO4221: string;
+    FCAMPO0134: string;
+    FCAMPO0131: string;
+    FCAMPO9998: string;
+    FCAMPO0136: string;
+    FCAMPO0100: string;
+    FCAMPO1190: string;
+    FCAMPO0101: string;
+    FCAMPO0121: string;
+    FCAMPO0133: string;
+    FCAMPO1003: string;
+    FCAMPO0504: string;
+    FCAMPO0513: string;
+    FCAMPO0505: string;
+    FCAMPO0135: string;
+    FCAMPO0132: string;
+
+   published
+
+    property CUPOM                 : string read FCAMPO0160;
+    property VALOR                 : string read FCAMPO0002;
+    property COD_BANDEIRA          : string read FCAMPO0132;
+    property COD_REDE              : string read FCAMPO0131;
+    property COD_AUTORIZACAO       : string read FCAMPO0135;
+    property NSU                   : string read FCAMPO0133;
+    property QTDE_PARCELAS         : string read FCAMPO0505;
+    property TAXA_SERVICO          : string read FCAMPO0504;
+    property BIN_CARTAO            : string read FCAMPO0136;
+    property ULTIMOS_DIGITOS_CARTAO: string read FCAMPO1190;
+    property CNPJ_AUTORIZADORA     : string read FCAMPO0950;
+    property NOME_CLIENTE          : string read FCAMPO1003;
+    property NSU_REDE              : string read FCAMPO0134;
+    property VENCTO_CARTAO         : string read FCAMPO0513;
+    property NUM_VIAS_COMPROVANTE  : string read FCAMPO0003;
+    property NOME_BANDEIRA         : string read FCAMPO9999;
+    property NOME_REDE             : string read FCAMPO9998;
+    property CARTAO_PRE_PAGO       : string read FCAMPO4221;
+    property COD_TIPO_TRANSACAO    : string read FCAMPO0100;
+    property DESC_TIPO_TRANSACAO   : string read FCAMPO0101;
+    property Comprovante           : string read FCAMPO0121;
+end;
+
 type
   TDTMultiplusCard = class(TComponent)
   private
@@ -45,14 +112,10 @@ type
     bCancelar      : TButton;
     FComprovante   : TOnComprovante;
     FOnCPF         : TOnCPF;
-    FPDV: String;
-    FCNPJ: string;
-    FCodLoja: string;
-    FComunicacao: string;
-    FData: string;
-    FOnErro: TOnErro;
-    FOnQrCode: TOnQrCode;
-
+    FOnErro        : TOnErro;
+    FOnQrCode      : TOnQrCode;
+    FMultiConfig   : TMultConfig;
+    FRetornoPgto   : TMultRetorno;
 
     procedure DoLog(const Conteudo: string);
     procedure DoComprovante(const Conteudo: string);
@@ -69,25 +132,25 @@ type
     procedure BotaoOkClick(Sender: TObject);
     procedure BotaoCancelarClick(Sender: TObject);
     procedure SetDLLPath;
+    function ExtrairValor(const ATexto, APattern: string): string;
 
   protected
 
   public
-    constructor Create(Aowner: TComponent);
+    constructor Create(Aowner: TComponent); override;
     destructor Destroy; override;
 
     function EfetuaTransacao(Op: TOperacao; Cupom, Nsu, Valor : string; Parcela : integer): Boolean;
 
     procedure AdicionaLog(strMsg, strStackTrace : string);
     function  ArquivoEmUso(caminhoArquivo : string) : Boolean;
+    procedure CarregarCampos(const ATexto: string);
 
   published
 
-    property Comunicacao    : string                      read FComunicacao             write FComunicacao;
-    property CNPJ           : string                      read FCNPJ                    write FCNPJ;
-    property CodLoja        : string                      read FCodLoja                 write FCodLoja;
-    property Data           : string                      read FData                    write FData;
-    property PDV            : String                      read FPDV                     write FPDV;
+    property Configuracoes  : TMultConfig                 read FMultiConfig             write FMultiConfig;
+    property RetornoPgto    : TMultRetorno                read FRetornoPgto             write FRetornoPgto;
+
     property OnLog          : TOnLogEvent                 read FOnLog                   write FOnLog;
     property OnComprovante  : TOnComprovante              read FComprovante             write FComprovante;
     property OnQrCode       : TOnQrCode                   read FOnQrCode                write FOnQrCode;
@@ -126,7 +189,7 @@ function FinalizaFuncaoMCInterativo(iComando: Integer;
 
 function CancelarFluxoMCInterativo(): Integer; stdcall; external 'TefClientmc.dll' delayed;
 
-  procedure Register;
+procedure Register;
 
 implementation
 
@@ -137,9 +200,30 @@ end;
 
 procedure TDTMultiplusCard.SetDLLPath;
 var
-  DLLPath: string;
+  DLLPath : string;
+  vConfig : string;
+  SL: TStringList;
 begin
   DLLPath := ExtractFilePath(ParamStr(0));
+
+  vConfig := DLLPath + 'ConfigMC.ini';
+  if not FileExists(vConfig) then
+  begin
+    try
+      SL := TStringList.Create;
+      try
+        SL.Add('CAMINHO=C:\ClientD');
+        SL.SaveToFile(vConfig);
+      finally
+        SL.Free;
+      end;
+    except
+
+    end;
+  end;
+
+  if not FileExists(DLLPath + 'TefClientmc.dll') then
+    raise Exception.Create('DLL não encontrada: ' + DLLPath + 'TefClientmc.dll');
 
   if not DirectoryExists(DLLPath) then
     raise Exception.Create('Diretório da DLL não encontrado: ' + DLLPath);
@@ -185,9 +269,37 @@ begin
        TForm(TButton(Sender).Owner).ModalResult := mrOk; // Fecha o formulário com resultado OK
 end;
 
+procedure TDTMultiplusCard.CarregarCampos(const ATexto: string);
+begin
+  FRetornoPgto.FCAMPO0160 := ExtrairValor(ATexto, 'CAMPO0160=([\d,]+)');
+  FRetornoPgto.FCAMPO0002 := ExtrairValor(ATexto, 'CAMPO0002=([\d,]+)');
+  FRetornoPgto.FCAMPO0132 := ExtrairValor(ATexto, 'CAMPO0132=(\d+)');
+  FRetornoPgto.FCAMPO0131 := ExtrairValor(ATexto, 'CAMPO0131=(\d+)');
+  FRetornoPgto.FCAMPO0135 := ExtrairValor(ATexto, 'CAMPO0135=(\d+)');
+  FRetornoPgto.FCAMPO0133 := ExtrairValor(ATexto, 'CAMPO0133=(\d+)');
+  FRetornoPgto.FCAMPO0505 := ExtrairValor(ATexto, 'CAMPO0505=(\d+)');
+  FRetornoPgto.FCAMPO0504 := ExtrairValor(ATexto, 'CAMPO0504=([\d,]+)');
+  FRetornoPgto.FCAMPO0136 := ExtrairValor(ATexto, 'CAMPO0136=(\d+)');
+  FRetornoPgto.FCAMPO1190 := ExtrairValor(ATexto, 'CAMPO1190=(\d+)');
+  FRetornoPgto.FCAMPO0950 := ExtrairValor(ATexto, 'CAMPO0950=(\d+)');
+  FRetornoPgto.FCAMPO1003 := ExtrairValor(ATexto, 'CAMPO1003=([^#]+)');
+  FRetornoPgto.FCAMPO0134 := ExtrairValor(ATexto, 'CAMPO0134=(\d+)');
+  FRetornoPgto.FCAMPO0513 := ExtrairValor(ATexto, 'CAMPO0513=(\d+)');
+  FRetornoPgto.FCAMPO0003 := ExtrairValor(ATexto, 'CAMPO0003=(\d+)');
+  FRetornoPgto.FCAMPO9999 := ExtrairValor(ATexto, 'CAMPO9999=([^#]+)');
+  FRetornoPgto.FCAMPO9998 := ExtrairValor(ATexto, 'CAMPO9998=([^#]+)');
+  FRetornoPgto.FCAMPO4221 := ExtrairValor(ATexto, 'CAMPO4221=([^#]+)');
+  FRetornoPgto.FCAMPO0100 := ExtrairValor(ATexto, 'CAMPO0100=(\d+)');
+  FRetornoPgto.FCAMPO0101 := ExtrairValor(ATexto, 'CAMPO0101=([^#]+)');
+  FRetornoPgto.FCAMPO0121 := ExtrairValor(ATexto, 'CAMPO0121=([^#]+)');
+end;
+
 constructor TDTMultiplusCard.Create(Aowner: TComponent);
 begin
-     inherited Create(Aowner);
+     inherited;
+
+     FMultiConfig := TMultConfig.Create;
+     FRetornoPgto := TMultRetorno.Create;
 end;
 
 procedure TDTMultiplusCard.CriarArquivo(sNomeArquivo, strMsg, strStackTrace: string);
@@ -325,7 +437,8 @@ end;
 
 destructor TDTMultiplusCard.Destroy;
 begin
-  //FConfig.Free;
+  FMultiConfig.Free;
+
   inherited Destroy;
 end;
 
@@ -368,8 +481,8 @@ end;
 function TDTMultiplusCard.GetParametros: Boolean;
 begin
     Result := True;
-    if FCNPJ.IsEmpty or
-       FCodLoja.IsEmpty then
+    if FMultiConfig.FCNPJ.IsEmpty or
+       FMultiConfig.FCodLoja.IsEmpty then
     begin
          Result := False;
          DoErro('Reveja os Dados enviados');
@@ -464,8 +577,11 @@ var
   vQrCode             : string;
   vpos                : integer;
 begin
+  Result := False;
+
   if GetParametros then
   begin
+
     case Op of
 
       tpMult_DEBITO_A_VISTA          : operacao := 20;
@@ -495,18 +611,19 @@ begin
 
     SetDLLPath;
 
+    Valor   := FormatFloat('#,##0.00', StrToFloat(Valor));
+
     Retorno := IniciaFuncaoMCInterativo(operacao,
-                                        PAnsiChar(AnsiString(FCNPJ)),
+                                        PAnsiChar(AnsiString(FMultiConfig.FCNPJ)),
                                         parcela,
                                         PAnsiChar(AnsiString(cupom)),
                                         PAnsiChar(AnsiString(valor)),
                                         PAnsiChar(AnsiString(nsu)),
-                                        PAnsiChar(AnsiString(FData)),
-                                        PAnsiChar(AnsiString(FPDV)),
-                                        PAnsiChar(AnsiString(FCodLoja)),
-                                        StrToInt(FComunicacao.PadLeft(1,'0')),
+                                        PAnsiChar(AnsiString(FMultiConfig.FData)),
+                                        PAnsiChar(AnsiString(FMultiConfig.FPDV)),
+                                        PAnsiChar(AnsiString(FMultiConfig.FCodLoja)),
+                                        StrToInt(FMultiConfig.FComunicacao.PadLeft(1,'0')),
                                         '');
-
     mydata := Now;
 
     DoLog(FormatDateTime('dd/MM/yyyy', mydata) + '- IniciaFuncaoMCInterativo()');
@@ -514,7 +631,6 @@ begin
 
     if (Retorno = 0) then
     begin
-
       var
         retMsg: PAnsiChar := '';
       var
@@ -525,13 +641,16 @@ begin
         strCupom: string := '';
 
       confirmar := True;
-      vMsg := TStringList.Create;
+      vMsg      := TStringList.Create;
 
       while (retMsg <> '[ERROABORTAR]') and (retMsg <> '[RETORNO]') and
             (retMsg <> '[ERRODISPLAY]') do
       begin
         strRetAguardaFMCInt := AguardaFuncaoMCInterativo();
         AdicionaLog(strRetAguardaFMCInt, '');
+
+        if copy(strRetAguardaFMCInt,1,20) = '[RETORNO]#CAMPO0160=' then
+            CarregarCampos(strRetAguardaFMCInt);
 
         if Pos('QRCODE=', strRetAguardaFMCInt) > 0 then
         begin
@@ -718,7 +837,10 @@ begin
 
         // ENVIAR DADOS DO COMPROVANTE EM EVENTO
         if Length(strCupom) > 50 then
-        DoComprovante(strCupom);
+        begin
+            Result := True;
+            DoComprovante(strCupom);
+        end;
         //DoComprovante(System.String.Join(sLineBreak, arrMsg));
 
         retFim := 0;
@@ -728,30 +850,30 @@ begin
           if confirmar then
           begin
             retFim := FinalizaFuncaoMCInterativo(98,
-                      PAnsiChar(AnsiString(FCNPJ)),
+                      PAnsiChar(AnsiString(FMultiConfig.FCNPJ)),
                       parcela,
                       PAnsiChar(AnsiString(cupom)),
                       PAnsiChar(AnsiString(valor)),
                       PAnsiChar(AnsiString(nsuRet)),
-                      PAnsiChar(AnsiString(FData)),
-                      PAnsiChar(AnsiString(FPDV)),
-                      PAnsiChar(AnsiString(FCodLoja)),
-                      StrToInt(FComunicacao.PadLeft(1,'0')),
+                      PAnsiChar(AnsiString(FMultiConfig.FData)),
+                      PAnsiChar(AnsiString(FMultiConfig.FPDV)),
+                      PAnsiChar(AnsiString(FMultiConfig.FCodLoja)),
+                      StrToInt(FMultiConfig.FComunicacao.PadLeft(1,'0')),
                       '');
 
           end
           else
           begin
             retFim := FinalizaFuncaoMCInterativo(99,
-                      PAnsiChar(AnsiString(FCNPJ)),
+                      PAnsiChar(AnsiString(FMultiConfig.FCNPJ)),
                       parcela,
                       PAnsiChar(AnsiString(cupom)),
                       PAnsiChar(AnsiString(valor)),
                       PAnsiChar(AnsiString(nsuRet)),
-                      PAnsiChar(AnsiString(FData)),
-                      PAnsiChar(AnsiString(FPDV)),
-                      PAnsiChar(AnsiString(FCodLoja)),
-                      StrToInt(FComunicacao.PadLeft(1,'0')),
+                      PAnsiChar(AnsiString(FMultiConfig.FData)),
+                      PAnsiChar(AnsiString(FMultiConfig.FPDV)),
+                      PAnsiChar(AnsiString(FMultiConfig.FCodLoja)),
+                      StrToInt(FMultiConfig.FComunicacao.PadLeft(1,'0')),
                       '');
           end;
 
@@ -799,6 +921,19 @@ begin
     end
   end
 
+end;
+
+function TDTMultiplusCard.ExtrairValor(const ATexto, APattern: string): string;
+var
+  Regex: TRegEx;
+  Match: TMatch;
+begin
+  Regex := TRegEx.Create(APattern);
+  Match := Regex.Match(ATexto);
+  if Match.Success then
+    Result := Match.Groups[1].Value
+  else
+    Result := '';
 end;
 
 procedure TDTMultiplusCard.VerificaArquivo(sNomeArquivo: string);

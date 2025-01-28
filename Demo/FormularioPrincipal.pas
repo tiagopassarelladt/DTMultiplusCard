@@ -190,11 +190,11 @@ end;
 
 procedure TFormPrincipal.configuracomponente;
 begin
-    DTMultiplusCard1.CNPJ        := '60.177.876/0001-30';
-    DTMultiplusCard1.CodLoja     := '167';
-    DTMultiplusCard1.Data        := FormatDateTime('yyyyMMdd', Now);
-    DTMultiplusCard1.PDV         := '001';
-    DTMultiplusCard1.Comunicacao := '9'; // numero da porta COM do pinpad
+    DTMultiplusCard1.Configuracoes.CNPJ        := '60.177.876/0001-30';
+    DTMultiplusCard1.Configuracoes.CodLoja     := '167';
+    DTMultiplusCard1.Configuracoes.Data        := FormatDateTime('yyyyMMdd', Now);
+    DTMultiplusCard1.Configuracoes.PDV         := '001';
+    DTMultiplusCard1.Configuracoes.Comunicacao := '9'; // numero da porta COM do pinpad
 end;
 
 procedure TFormPrincipal.DTMultiplusCard1Comprovante(Sender: TObject;
@@ -202,6 +202,31 @@ procedure TFormPrincipal.DTMultiplusCard1Comprovante(Sender: TObject;
 begin
     mComprovante.Lines.Clear;
     mComprovante.Lines.Add(Conteudo);
+
+    // É POSSIVEL OBTER AS PROPRIEDADES DO COMPROVANTE DE PAGAMENTO DE FORMA INDIVIDUAL
+    mComprovante.Lines.Add(StringOfChar('=',38));
+    mComprovante.Lines.Add('cupom: '                  + DTMultiplusCard1.RetornoPgto.CUPOM);
+    mComprovante.Lines.Add('valor: '                  + DTMultiplusCard1.RetornoPgto.VALOR);
+    mComprovante.Lines.Add('cod_bandeira: '           + DTMultiplusCard1.RetornoPgto.COD_BANDEIRA);
+    mComprovante.Lines.Add('cod_rede: '               + DTMultiplusCard1.RetornoPgto.COD_REDE);
+    mComprovante.Lines.Add('cod_autorizacao: '        + DTMultiplusCard1.RetornoPgto.COD_AUTORIZACAO);
+    mComprovante.Lines.Add('nsu: '                    + DTMultiplusCard1.RetornoPgto.NSU);
+    mComprovante.Lines.Add('qtde_parcelas: '          + DTMultiplusCard1.RetornoPgto.QTDE_PARCELAS);
+    mComprovante.Lines.Add('taxa_servico: '           + DTMultiplusCard1.RetornoPgto.TAXA_SERVICO);
+    mComprovante.Lines.Add('bin_cartao: '             + DTMultiplusCard1.RetornoPgto.BIN_CARTAO);
+    mComprovante.Lines.Add('ultimos_digitos_cartao: ' + DTMultiplusCard1.RetornoPgto.ULTIMOS_DIGITOS_CARTAO);
+    mComprovante.Lines.Add('cnpj_autorizadora: '      + DTMultiplusCard1.RetornoPgto.CNPJ_AUTORIZADORA);
+    mComprovante.Lines.Add('nome_cliente: '           + DTMultiplusCard1.RetornoPgto.NOME_CLIENTE);
+    mComprovante.Lines.Add('nsu_rede: '               + DTMultiplusCard1.RetornoPgto.NSU_REDE);
+    mComprovante.Lines.Add('num_vias_comprovante: '   + DTMultiplusCard1.RetornoPgto.NUM_VIAS_COMPROVANTE);
+    mComprovante.Lines.Add('vencto_cartao: '          + DTMultiplusCard1.RetornoPgto.VENCTO_CARTAO);
+    mComprovante.Lines.Add('nome_bandeira: '          + DTMultiplusCard1.RetornoPgto.NOME_BANDEIRA);
+    mComprovante.Lines.Add('nome_rede: '              + DTMultiplusCard1.RetornoPgto.NOME_REDE);
+    mComprovante.Lines.Add('cartao_pre_pago: '        + DTMultiplusCard1.RetornoPgto.CARTAO_PRE_PAGO);
+    mComprovante.Lines.Add('cod_tipo_transacao: '     + DTMultiplusCard1.RetornoPgto.COD_TIPO_TRANSACAO);
+    mComprovante.Lines.Add('desc_tipo_transacao: '    + DTMultiplusCard1.RetornoPgto.DESC_TIPO_TRANSACAO);
+    mComprovante.Lines.Add(StringOfChar('=',38));
+
 end;
 
 procedure TFormPrincipal.DTMultiplusCard1CPF(Sender: TObject;
