@@ -1,0 +1,1227 @@
+unit DTMultiplusCard;
+
+interface
+
+uses
+  System.SysUtils,
+  System.Types,
+  Winapi.Windows,
+  Vcl.Forms,
+  System.Classes,
+  system.StrUtils,
+  Vcl.Dialogs,
+  Vcl.StdCtrls,
+  Vcl.Controls,
+  vcl.ExtCtrls,
+  System.RegularExpressions,
+  system.IniFiles,
+  Vcl.Buttons,
+  Vcl.Graphics;
+
+
+type TOperacao = (tpMult_DEBITO_A_VISTA, tpMult_DEBITO, tpMult_CREDITO, tpMult_CREDITO_A_VISTA, tpMult_CREDITO_PARC_LOJA, tpMult_CREDITO_PARC_ADM, tpMult_FROTA, tpMult_VOUCHER,
+                  tpMult_PRE_AUTORIZACAO, tpMult_CONF_PRE_AUTORIZACAO, tpMult_CANC_PRE_AUTORIZACAO,
+                  tpMult_CONSULTA_SALDO_CREDITO, tpMult_CONSULTA_SALDO_DEBITO,
+                  tpMult_EXCLUIR_BINS, tpMult_REIMPRESSAO, tpMult_COLETA_DE_CPF,
+                  tpMult_OPCOES_PSP, tpMult_PSP_CLIENTE, tpMult_MERCADO_PAGO, tpMult_PICPAY, tpMult_CANCELAR_ESTORNO, tpMult_CANCELAR_ESTORNO_PIX, tpMult_STATUS_TRANSACAO
+                  );
+
+type
+TOnLogEvent    = procedure(Sender: TObject; const Conteudo: string) of object;
+TOnComprovante = procedure(Sender: TObject; const Conteudo: string) of object;
+TOnQrCode      = procedure(Sender: TObject; const Conteudo: string) of object;
+TOnCPF         = procedure(Sender: TObject; const Conteudo: string) of object;
+TOnErro        = procedure(Sender: TObject; const Conteudo: string) of object;
+
+type TMultConfig = class(TPersistent)
+   private
+    FPDV         : String;
+    FCNPJ        : string;
+    FCodLoja     : string;
+    FComunicacao : string;
+    FData        : string;
+
+   published
+    property Comunicacao    : string                      read FComunicacao             write FComunicacao;
+    property CNPJ           : string                      read FCNPJ                    write FCNPJ;
+    property CodLoja        : string                      read FCodLoja                 write FCodLoja;
+    property Data           : string                      read FData                    write FData;
+    property PDV            : String                      read FPDV                     write FPDV;
+end;
+
+type TMultRetorno = class(TPersistent)
+
+   private
+    FCAMPO9999: string;
+    FCAMPO0950: string;
+    FCAMPO0002: string;
+    FCAMPO0003: string;
+    FCAMPO0160: string;
+    FCAMPO4221: string;
+    FCAMPO0134: string;
+    FCAMPO0131: string;
+    FCAMPO9998: string;
+    FCAMPO0136: string;
+    FCAMPO0100: string;
+    FCAMPO1190: string;
+    FCAMPO0101: string;
+    FCAMPO0121: string;
+    FCAMPO0133: string;
+    FCAMPO1003: string;
+    FCAMPO0504: string;
+    FCAMPO0513: string;
+    FCAMPO0505: string;
+    FCAMPO0135: string;
+    FCAMPO0132: string;
+
+   published
+
+    property CUPOM                 : string read FCAMPO0160;
+    property VALOR                 : string read FCAMPO0002;
+    property COD_BANDEIRA          : string read FCAMPO0132;
+    property COD_REDE              : string read FCAMPO0131;
+    property COD_AUTORIZACAO       : string read FCAMPO0135;
+    property NSU                   : string read FCAMPO0133;
+    property QTDE_PARCELAS         : string read FCAMPO0505;
+    property TAXA_SERVICO          : string read FCAMPO0504;
+    property BIN_CARTAO            : string read FCAMPO0136;
+    property ULTIMOS_DIGITOS_CARTAO: string read FCAMPO1190;
+    property CNPJ_AUTORIZADORA     : string read FCAMPO0950;
+    property NOME_CLIENTE          : string read FCAMPO1003;
+    property NSU_REDE              : string read FCAMPO0134;
+    property VENCTO_CARTAO         : string read FCAMPO0513;
+    property NUM_VIAS_COMPROVANTE  : string read FCAMPO0003;
+    property NOME_BANDEIRA         : string read FCAMPO9999;
+    property NOME_REDE             : string read FCAMPO9998;
+    property CARTAO_PRE_PAGO       : string read FCAMPO4221;
+    property COD_TIPO_TRANSACAO    : string read FCAMPO0100;
+    property DESC_TIPO_TRANSACAO   : string read FCAMPO0101;
+    property Comprovante           : string read FCAMPO0121;
+end;
+
+type
+  TFormMensagem = class(TForm)
+  private
+    FpnTitulo: TPanel;
+    FshpTitulo: TShape;
+    FlblTitulo: TLabel;
+    FpnMensagem: TPanel;
+    FlMensagem: TLabel;
+    FpnBotoes: TPanel;
+    FbOK: TButton;
+    FbCancelar: TButton;
+    FeResposta: TEdit;
+    procedure BotaoOkClick(Sender: TObject);
+    procedure BotaoCancelarClick(Sender: TObject);
+  public
+    constructor Create(AOwner: TComponent); override;
+    property lblTitulo: TLabel read FlblTitulo;
+    property lMensagem: TLabel read FlMensagem;
+    property eResposta: TEdit read FeResposta;
+  end;
+
+type
+  TDTMultiplusCard = class(TComponent)
+  private
+    arq            : TextFile;
+    Retorno        : Integer;
+    mydata         : TDateTime;
+    FOnLog         : TOnLogEvent;
+    arrMsg         : TArray<string>;
+    fMensagem      : TFormMensagem;
+    lMensagem      : TLabel;
+    lblTitulo      : TLabel;
+    pnTitulo       : TPanel;
+    pnMensagem     : TPanel;
+    pnBotoes       : TPanel;
+    shpTitulo      : TShape;
+    eResposta      : TEdit;
+    bOk            : TButton;
+    bCancelar      : TButton;
+    FComprovante   : TOnComprovante;
+    FOnCPF         : TOnCPF;
+    FOnErro        : TOnErro;
+    FOnQrCode      : TOnQrCode;
+    FMultiConfig   : TMultConfig;
+    FRetornoPgto   : TMultRetorno;
+    FMensagemReduzida: Boolean;
+
+    procedure DoLog(Conteudo: string);
+    procedure DoComprovante(const Conteudo: string);
+    procedure DoQrCode(const Conteudo: string);
+    procedure DoCPF(const Conteudo: string);
+    procedure DoErro(const Conteudo: string);
+
+    procedure CriarArquivo (sNomeArquivo, strMsg, strStackTrace : string);
+    procedure VerificaArquivo (sNomeArquivo : string);
+    function GetParametros(): Boolean;
+    function RetornaErro(): Boolean;
+    procedure CriarFormMensagem;
+    procedure DestruirMensagem;
+    procedure BotaoOkClick(Sender: TObject);
+    procedure BotaoCancelarClick(Sender: TObject);
+    procedure SetDLLPath;
+    function ExtrairValor(const ATexto, APattern: string): string;
+
+  protected
+
+  public
+    constructor Create(Aowner: TComponent); override;
+    destructor Destroy; override;
+
+    function EfetuaTransacao(Op: TOperacao; Cupom, Nsu, Valor : string; Parcela : integer): Boolean;
+
+    procedure AdicionaLog(strMsg, strStackTrace : string);
+    function  ArquivoEmUso(caminhoArquivo : string) : Boolean;
+    procedure CarregarCampos(const ATexto: string);
+
+  published
+
+    property Configuracoes    : TMultConfig                 read FMultiConfig             write FMultiConfig;
+    property RetornoPgto      : TMultRetorno                read FRetornoPgto             write FRetornoPgto;
+    property LogSimplificado  : Boolean                     read FMensagemReduzida        write FMensagemReduzida;
+
+    property OnLog            : TOnLogEvent                 read FOnLog                   write FOnLog;
+    property OnComprovante    : TOnComprovante              read FComprovante             write FComprovante;
+    property OnQrCode         : TOnQrCode                   read FOnQrCode                write FOnQrCode;
+    property OnCPF            : TOnCPF                      read FOnCPF                   write FOnCPF;
+    property OnErro           : TOnErro                     read FOnErro                  write FOnErro;
+
+  end;
+
+function IniciaFuncaoMCInterativo(iComando: Integer;
+                                  sCnpjCliente: PAnsiChar;
+                                  iParcela: Integer;
+                                  sCupom: PAnsiChar;
+                                  sValor: PAnsiChar;
+                                  sNsu: PAnsiChar;
+                                  sData: PAnsiChar;
+                                  sNumeroPDV: PAnsiChar;
+                                  sCodigoLoja: PAnsiChar;
+                                  sTipoComunicacao: Integer;
+                                  sParametro: PAnsiChar): Integer; stdcall; external 'TefClientmc.dll' delayed;
+
+function AguardaFuncaoMCInterativo(): PAnsiChar; stdcall; external 'TefClientmc.dll' delayed;
+
+function ContinuaFuncaoMCInterativo(sInformacao: PAnsiChar): Integer; stdcall; external 'TefClientmc.dll' delayed
+
+function FinalizaFuncaoMCInterativo(iComando: Integer;
+                                    sCnpjCliente: PAnsiChar;
+                                    iParcela: Integer;
+                                    sCupom: PAnsiChar;
+                                    sValor: PAnsiChar;
+                                    sNsu: PAnsiChar;
+                                    sData: PAnsiChar;
+                                    sNumeroPDV: PAnsiChar;
+                                    sCodigoLoja: PAnsiChar;
+                                    sTipoComunicacao: Integer;
+                                    sParametro: PAnsiChar): Integer; stdcall; external 'TefClientmc.dll' delayed;
+
+function CancelarFluxoMCInterativo(): Integer; stdcall; external 'TefClientmc.dll' delayed;
+
+procedure Register;
+
+implementation
+
+procedure Register;
+begin
+  RegisterComponents('DT Inovacao', [TDTMultiplusCard]);
+end;
+
+procedure TDTMultiplusCard.SetDLLPath;
+var
+  DLLPath : string;
+  vConfig : string;
+  SL: TStringList;
+begin
+  DLLPath := ExtractFilePath(ParamStr(0));
+
+  vConfig := DLLPath + 'ConfigMC.ini';
+  if not FileExists(vConfig) then
+  begin
+    try
+      SL := TStringList.Create;
+      try
+        SL.Add('CAMINHO=C:\ClientD');
+        SL.SaveToFile(vConfig);
+      finally
+        SL.Free;
+      end;
+    except
+
+    end;
+  end;
+
+  if not FileExists(DLLPath + 'TefClientmc.dll') then
+    raise Exception.Create('DLL não encontrada: ' + DLLPath + 'TefClientmc.dll');
+
+  if not DirectoryExists(DLLPath) then
+    raise Exception.Create('Diretório da DLL não encontrado: ' + DLLPath);
+
+  if not SetDllDirectory(PChar(DLLPath)) then
+    raise Exception.Create('Falha ao definir o diretório da DLL: ' + DLLPath);
+end;
+
+
+procedure TDTMultiplusCard.AdicionaLog(strMsg, strStackTrace: string);
+begin
+   CriarArquivo('tef',strMsg,strStackTrace);
+end;
+
+function TDTMultiplusCard.ArquivoEmUso(caminhoArquivo: string): Boolean;
+begin
+    try
+        AssignFile(arq,caminhoArquivo);
+        if FileExists(caminhoArquivo) then
+        begin
+            Append(arq);
+        end
+        else
+        begin
+          Rewrite ( arq );
+        end;
+        CloseFile(arq);
+        Result := False;
+    except
+        Result := True;
+    end;
+end;
+
+procedure TDTMultiplusCard.BotaoCancelarClick(Sender: TObject);
+var
+  Form: TCustomForm;
+begin
+  if Sender is TControl then
+  begin
+    Form := GetParentForm(TControl(Sender));
+    if Assigned(Form) then
+      Form.ModalResult := mrCancel; // Fecha o formulário com resultado Cancelar
+  end;
+end;
+
+procedure TDTMultiplusCard.BotaoOkClick(Sender: TObject);
+var
+  Form: TCustomForm;
+begin
+  if Sender is TControl then
+  begin
+    Form := GetParentForm(TControl(Sender));
+    if Assigned(Form) then
+      Form.ModalResult := mrOk; // Fecha o formulário com resultado OK
+  end;
+end;
+
+procedure TDTMultiplusCard.CarregarCampos(const ATexto: string);
+begin
+  FRetornoPgto.FCAMPO0160 := ExtrairValor(ATexto, 'CAMPO0160=([\d,]+)');
+  FRetornoPgto.FCAMPO0002 := ExtrairValor(ATexto, 'CAMPO0002=([\d,]+)');
+  FRetornoPgto.FCAMPO0132 := ExtrairValor(ATexto, 'CAMPO0132=(\d+)');
+  FRetornoPgto.FCAMPO0131 := ExtrairValor(ATexto, 'CAMPO0131=(\d+)');
+  FRetornoPgto.FCAMPO0135 := ExtrairValor(ATexto, 'CAMPO0135=(\d+)');
+  FRetornoPgto.FCAMPO0133 := ExtrairValor(ATexto, 'CAMPO0133=(\d+)');
+  FRetornoPgto.FCAMPO0505 := ExtrairValor(ATexto, 'CAMPO0505=(\d+)');
+  FRetornoPgto.FCAMPO0504 := ExtrairValor(ATexto, 'CAMPO0504=([\d,]+)');
+  FRetornoPgto.FCAMPO0136 := ExtrairValor(ATexto, 'CAMPO0136=(\d+)');
+  FRetornoPgto.FCAMPO1190 := ExtrairValor(ATexto, 'CAMPO1190=(\d+)');
+  FRetornoPgto.FCAMPO0950 := ExtrairValor(ATexto, 'CAMPO0950=(\d+)');
+  FRetornoPgto.FCAMPO1003 := ExtrairValor(ATexto, 'CAMPO1003=([^#]+)');
+  FRetornoPgto.FCAMPO0134 := ExtrairValor(ATexto, 'CAMPO0134=(\d+)');
+  FRetornoPgto.FCAMPO0513 := ExtrairValor(ATexto, 'CAMPO0513=(\d+)');
+  FRetornoPgto.FCAMPO0003 := ExtrairValor(ATexto, 'CAMPO0003=(\d+)');
+  FRetornoPgto.FCAMPO9999 := ExtrairValor(ATexto, 'CAMPO9999=([^#]+)');
+  FRetornoPgto.FCAMPO9998 := ExtrairValor(ATexto, 'CAMPO9998=([^#]+)');
+  FRetornoPgto.FCAMPO4221 := ExtrairValor(ATexto, 'CAMPO4221=([^#]+)');
+  FRetornoPgto.FCAMPO0100 := ExtrairValor(ATexto, 'CAMPO0100=(\d+)');
+  FRetornoPgto.FCAMPO0101 := ExtrairValor(ATexto, 'CAMPO0101=([^#]+)');
+  FRetornoPgto.FCAMPO0121 := ExtrairValor(ATexto, 'CAMPO0121=([^#]+)');
+end;
+
+constructor TDTMultiplusCard.Create(Aowner: TComponent);
+begin
+     inherited;
+
+     FMultiConfig := TMultConfig.Create;
+     FRetornoPgto := TMultRetorno.Create;
+end;
+
+procedure TDTMultiplusCard.CriarArquivo(sNomeArquivo, strMsg, strStackTrace: string);
+var
+mydata                       : TDateTime;
+caminho                      : string;
+Version,Dummy                : DWORD;
+PVersionData                 : pointer;
+PFixedFileInfo               : PVSFixedFileInfo;
+FixedFileInfoLength          : UINT;
+Major, Minor, Release, Build : Integer;
+VersionFinal                 : string;
+begin
+    mydata := Now;
+
+    if string.IsNullOrEmpty(strMsg) and string.IsNullOrEmpty(strStackTrace)then
+       Exit;
+
+    If FileExists(ExpandFileName(GetCurrentDir + '\..\..\')+'nlog.txt') then
+       Exit;
+
+    If string.IsNullOrEmpty(sNomeArquivo) then
+       Exit;
+
+    if ArquivoEmUso(ExpandFileName(GetCurrentDir + '\..\..\') + sNomeArquivo + '.log')THEN
+       Exit;
+
+    try
+      caminho := Application.ExeName;
+      Version := GetFileVersionInfoSize(pChar(caminho),Dummy);
+
+      if Version = 0 then
+       exit;
+
+      PVersionData := AllocMem(Version);
+      try
+          if GetFileVersionInfo(pChar(caminho), 0, Version, PVersionData) = False then
+             exit;
+
+          if VerQueryValue(PVersionData, '', pointer(PFixedFileInfo), FixedFileInfoLength) = False then
+             exit;
+          Major   := PFixedFileInfo^.dwFileVersionMS shr 16;
+          Minor   := PFixedFileInfo^.dwFileVersionMS and $FFFF;
+          Release := PFixedFileInfo^.dwFileVersionLS shr 16;
+          Build   := PFixedFileInfo^.dwFileVersionLS and $FFFF;
+      finally
+          FreeMem(PVersionData);
+      end;
+      if (Major or Minor or Release or Build) <> 0 then
+          VersionFinal := IntToStr(Major) + '.' + IntToStr(Minor) + '.' + IntToStr(Release) + '.' + IntToStr(Build);
+
+      VerificaArquivo(sNomeArquivo);
+
+      if strMsg <> '' then
+      begin
+        Append(arq);
+        Writeln(arq,PChar(FormatDateTime('dd/MM/yyyy tt', mydata)+ ' v.' + VersionFinal + ' :: ' + strMsg));
+      end;
+
+      if (not string.IsNullOrEmpty(strStackTrace)) then
+      begin
+        Append(arq);
+        Writeln(arq,PChar(FormatDateTime('dd/MM/yyyy tt', mydata)+ ' v.' + VersionFinal + ' :: ' + strStackTrace));
+      end;
+
+      Close(arq);
+
+    except
+    end;
+
+end;
+
+procedure TDTMultiplusCard.CriarFormMensagem;
+var
+  fMensagem: TFormMensagem;
+begin
+  fMensagem := TFormMensagem.Create(nil);
+  try
+//    fMensagem.lblTitulo.Caption := arrMsg[1];
+//    fMensagem.lMensagem.Caption := arrMsg[2].Replace('|', sLineBreak);
+//    if fMensagem.ShowModal = mrOk then
+//    begin
+//      // Processa a resposta se necessário...
+//    end;
+  finally
+   // fMensagem.Free;
+  end;
+//fMensagem := TForm.Create(nil);
+//try
+//  // Configurações do Formulário
+//  fMensagem.BorderIcons  := [];
+//  fMensagem.BorderStyle  := bsDialog;
+//  fMensagem.ClientHeight := 245;
+//  fMensagem.ClientWidth  := 564;
+//  fMensagem.Color        := clBtnFace;
+//  fMensagem.Font.Name    := 'Tahoma';
+//  fMensagem.Font.Size    := 8;
+//  fMensagem.KeyPreview   := True;
+//  fMensagem.Position     := poScreenCenter;
+//  fMensagem.Caption      := '';
+//
+//  // Painel Título
+//  pnTitulo                  := TPanel.Create(fMensagem);
+//  pnTitulo.Parent           := fMensagem;
+//  pnTitulo.Left             := 0;
+//  pnTitulo.Top              := 0;
+//  pnTitulo.Width            := 564;
+//  pnTitulo.Height           := 46;
+//  pnTitulo.Align            := alTop;
+//  pnTitulo.ParentBackground := False;
+//  pnTitulo.ParentFont       := False;
+//  pnTitulo.StyleElements    := [];
+//
+//  shpTitulo             := TShape.Create(pnTitulo);
+//  shpTitulo.Parent      := pnTitulo;
+//  shpTitulo.Align       := alClient;
+//  shpTitulo.Brush.Color := 10455853;
+//  shpTitulo.Pen.Color   := 6403220;
+//  shpTitulo.Pen.Style   := psDot;
+//
+//  lblTitulo            := TLabel.Create(pnTitulo);
+//  lblTitulo.Name       := 'lbltitulo';
+//  lblTitulo.Parent     := pnTitulo;
+//  lblTitulo.Align      := alClient;
+//  lblTitulo.Alignment  := taCenter;
+//  lblTitulo.Caption    := 'Atenção';
+//  lblTitulo.Font.Name  := 'Consolas';
+//  lblTitulo.Font.Size  := 14;
+//  lblTitulo.Font.Color := clWhite;
+//  lblTitulo.Layout     := tlCenter;
+//  lblTitulo.ParentFont := False;
+//  lblTitulo.Caption    := 'Mensagem';
+//  lblTitulo.StyleElements := [];
+//
+//  // Painel Mensagem
+//  pnMensagem               := TPanel.Create(fMensagem);
+//  pnMensagem.Parent        := fMensagem;
+//  pnMensagem.Align         := alClient;
+//  pnMensagem.BevelInner    := bvSpace;
+//  pnMensagem.BevelKind     := bkFlat;
+//  pnMensagem.BevelOuter    := bvLowered;
+//  pnMensagem.Font.Name     := 'Tahoma';
+//  pnMensagem.Font.Size     := 12;
+//  pnMensagem.ParentFont    := False;
+//  pnMensagem.StyleElements := [];
+//
+//  lMensagem             := TLabel.Create(pnMensagem);
+//  lMensagem.Parent      := pnMensagem;
+//  lMensagem.Align       := alClient;
+//  lMensagem.Alignment   := taCenter;
+//  lMensagem.WordWrap    := True;
+//  lMensagem.Layout      := tlCenter;
+//  lMensagem.Caption     := '';
+//  lMensagem.Font.Name   := 'Arial';
+//  lMensagem.Font.Size   := 10;
+//  lMensagem.ParentFont  := False;
+//  lMensagem.StyleElements := [];
+//
+//  // Painel Botões
+//  pnBotoes                  := TPanel.Create(fMensagem);
+//  pnBotoes.Parent           := fMensagem;
+//  pnBotoes.Align            := alBottom;
+//  pnBotoes.Height           := 45;
+//  pnBotoes.BevelOuter       := bvNone;
+//  pnBotoes.ParentBackground := False;
+//  pnBotoes.ParentFont       := False;
+//
+//  // Botão OK
+//  bOK         := TButton.Create(pnBotoes);
+//  bOK.Parent  := pnBotoes;
+//  bOK.Align   := alLeft;
+//  bOK.Width   := 100;
+//  bOK.Caption := 'Ok';
+//  bOK.OnClick := BotaoOkClick;
+//  bOk.Cursor  := crHandPoint;
+//
+//  // Botão Cancelar
+//  bCancelar         := TButton.Create(pnBotoes);
+//  bCancelar.Parent  := pnBotoes;
+//  bCancelar.Align   := alRight;
+//  bCancelar.Width   := 100;
+//  bCancelar.Caption := 'Cancelar (Esc)';
+//  bCancelar.OnClick := BotaoCancelarClick;
+//  bCancelar.Cursor  := crHandPoint;
+//
+//  // Caixa de Resposta
+//  eResposta          := TEdit.Create(pnMensagem);
+//  eResposta.Parent   := pnMensagem;
+//  eResposta.Align    := alBottom;
+//  eResposta.Width    := 417;
+//  eResposta.Height   := 21;
+//  eResposta.TabOrder := 0;
+//finally
+
+//end;
+
+end;
+
+destructor TDTMultiplusCard.Destroy;
+begin
+  FMultiConfig.Free;
+
+  inherited Destroy;
+end;
+
+procedure TDTMultiplusCard.DestruirMensagem;
+begin
+     if Assigned(fMensagem) then
+        FreeAndNil(fMensagem);
+end;
+
+procedure TDTMultiplusCard.DoComprovante(const Conteudo: string);
+begin
+    if Assigned(FComprovante) then
+       FComprovante(Self, Conteudo);
+end;
+
+procedure TDTMultiplusCard.DoCPF(const Conteudo: string);
+begin
+    if Assigned(FOnCPF) then
+       FOnCPF(Self, Conteudo);
+end;
+
+procedure TDTMultiplusCard.DoErro(const Conteudo: string);
+begin
+     if Assigned(FOnErro) then
+       FOnErro(Self, Conteudo);
+end;
+
+procedure TDTMultiplusCard.DoLog(Conteudo: string);
+var
+Posicao : integer;
+begin
+     if FMensagemReduzida then
+     begin
+        Conteudo := Conteudo;
+        Posicao := Pos('#', Conteudo);
+        if Posicao > 0 then
+          Conteudo := Copy(Conteudo, Posicao + 1, Length(Conteudo));
+     end;
+
+     if Assigned(FOnLog) then
+       FOnLog(Self, Conteudo);
+end;
+
+procedure TDTMultiplusCard.DoQrCode(const Conteudo: string);
+begin
+    if Assigned(FOnQrCode) then
+       FOnQrCode(Self, Conteudo);
+end;
+
+function TDTMultiplusCard.GetParametros: Boolean;
+begin
+    Result := True;
+    if FMultiConfig.FCNPJ.IsEmpty or
+       FMultiConfig.FCodLoja.IsEmpty then
+    begin
+         Result := False;
+         DoErro('Reveja os Dados enviados');
+         ShowMessage('Reveja os Dados enviados');
+    end;
+end;
+
+function TDTMultiplusCard.RetornaErro: Boolean;
+begin
+   if Retorno = 1 then
+  begin
+    DoErro('Erro genérico na execução');
+    ShowMessage('Erro genérico na execução');
+  end;
+  if Retorno = 30 then
+  begin
+    DoErro('Não foi encontrado o caminho do ClientD.exe');
+    ShowMessage('Não foi encontrado o caminho do ClientD.exe');
+  end;
+  if Retorno = 31 then
+  begin
+    DoErro('ConfigMC.ini está vazio');
+    ShowMessage('ConfigMC.ini está vazio');
+  end;
+  if Retorno = 32 then
+  begin
+    DoErro('ClientD.exe não encontrado');
+    ShowMessage('ClientD.exe não encontrado');
+  end;
+  if Retorno = 33 then
+  begin
+    DoErro('ClientD.exe não está em execução');
+    ShowMessage('ClientD.exe não está em execução');
+  end;
+  if Retorno = 34 then
+  begin
+    DoErro('Erro ao iniciar ClientD.exe');
+    ShowMessage('Erro ao iniciar ClientD.exe');
+  end;
+  if Retorno = 35 then
+  begin
+    DoErro('Não foi possível criar o arquivo de resposta');
+    ShowMessage('Não foi possível criar o arquivo de resposta');
+  end;
+  if Retorno = 36 then
+  begin
+    DoErro('Erro na manipulação do arquivo de resposta');
+    ShowMessage('Erro na manipulação do arquivo de resposta');
+  end;
+  if Retorno = 37 then
+  begin
+    DoErro('Erro na leitura do arquivo ConfigMC.ini');
+    ShowMessage('Erro na leitura do arquivo ConfigMC.ini');
+  end;
+  if Retorno = 38 then
+  begin
+    DoErro('Valor da transação com formato incorreto');
+    ShowMessage('Valor da transação com formato incorreto');
+  end;
+  if Retorno = 39 then
+  begin
+    DoErro('Executável de envio de transações não encontrado');
+    ShowMessage('Executável de envio de transações não encontrado');
+  end;
+  if Retorno = 40 then
+  begin
+    DoErro('CNPJ Inválido ou no formato incorreto');
+    ShowMessage('CNPJ Inválido ou no formato incorreto');
+  end;
+  if Retorno = 41 then
+  begin
+    DoErro('ClientD.exe está em processo de atualização');
+    ShowMessage('ClientD.exe está em processo de atualização');
+  end;
+  if Retorno = 42 then
+  begin
+    DoErro('A automação não está sendo executada no modo administrador');
+    ShowMessage('A automação não está sendo executada no modo administrador');
+  end;
+end;
+
+function TDTMultiplusCard.EfetuaTransacao(Op: TOperacao; Cupom, Nsu, Valor : string; Parcela : integer): Boolean;
+var
+  vMsg                : TStringList;
+  retFim              : Integer;
+  arrMsg              : TArray<string>;
+  respFMsg            : PAnsiChar;
+  strRetAguardaFMCInt : PAnsiChar;
+  confirmar           : Boolean;
+  operacao            : integer;
+  TarrMsg             : Integer;
+  vQrCode             : string;
+  vpos                : integer;
+begin
+  Result := False;
+
+  if GetParametros then
+  begin
+
+    case Op of
+
+      tpMult_DEBITO_A_VISTA          : operacao := 20;
+      tpMult_DEBITO                  : operacao := 4;
+      tpMult_CREDITO                 : operacao := 1;
+      tpMult_CREDITO_A_VISTA         : operacao := 0;
+      tpMult_CREDITO_PARC_LOJA       : operacao := 2;
+      tpMult_CREDITO_PARC_ADM        : operacao := 3;
+      tpMult_FROTA                   : operacao := 11;
+      tpMult_VOUCHER                 : operacao := 18;
+      tpMult_PRE_AUTORIZACAO         : operacao := 15;
+      tpMult_CONF_PRE_AUTORIZACAO    : operacao := 16;
+      tpMult_CANC_PRE_AUTORIZACAO    : operacao := 17;
+      tpMult_CONSULTA_SALDO_CREDITO  : operacao := 9;
+      tpMult_CONSULTA_SALDO_DEBITO   : operacao := 10;
+      tpMult_EXCLUIR_BINS            : operacao := 110;
+      tpMult_REIMPRESSAO             : operacao := 6;
+      tpMult_COLETA_DE_CPF           : operacao := 200;
+      tpMult_OPCOES_PSP              : operacao := 50;
+      tpMult_PSP_CLIENTE             : operacao := 51;
+      tpMult_MERCADO_PAGO            : operacao := 52;
+      tpMult_PICPAY                  : operacao := 53;
+      tpMult_CANCELAR_ESTORNO        : operacao := 5;
+      tpMult_CANCELAR_ESTORNO_PIX    : operacao := 54; // pix
+      tpMult_STATUS_TRANSACAO        : operacao := 56;
+
+    end;
+
+    SetDLLPath;
+
+    Valor   := FormatFloat('#,##0.00', StrToFloat(Valor));
+
+    Retorno := IniciaFuncaoMCInterativo(operacao,
+                                        PAnsiChar(AnsiString(FMultiConfig.FCNPJ.Replace('.','').Replace('-','').Replace('/','').Replace(' ',''))),
+                                        parcela,
+                                        PAnsiChar(AnsiString(cupom)),
+                                        PAnsiChar(AnsiString(valor)),
+                                        PAnsiChar(AnsiString(nsu)),
+                                        PAnsiChar(AnsiString(FMultiConfig.FData)),
+                                        PAnsiChar(AnsiString(FMultiConfig.FPDV)),
+                                        PAnsiChar(AnsiString(FMultiConfig.FCodLoja)),
+                                        0,
+                                        '');
+    mydata := Now;
+
+    DoLog(FormatDateTime('dd/MM/yyyy', mydata) + '- IniciaFuncaoMCInterativo()');
+    AdicionaLog('IniciaFuncaoMCInterativo()', '');
+
+    if (Retorno = 0) then
+    begin
+      var
+        retMsg: PAnsiChar := '';
+      var
+        strComprovante: string := '';
+      var
+        nsuRet: string := '';
+      var
+        strCupom: string := '';
+
+      confirmar := True;
+      vMsg      := TStringList.Create;
+
+      while (retMsg <> '[ERROABORTAR]') and
+            (retMsg <> '[RETORNO]') and
+            (retMsg <> '[ERRODISPLAY]') do
+      begin
+        strRetAguardaFMCInt := AguardaFuncaoMCInterativo();
+        AdicionaLog(strRetAguardaFMCInt, '');
+
+        if copy(strRetAguardaFMCInt,1,20) = '[RETORNO]#CAMPO0160=' then
+            CarregarCampos(strRetAguardaFMCInt);
+
+        if Pos('QRCODE=', strRetAguardaFMCInt) > 0 then
+        begin
+        vQrCode := '';
+        vpos    := Pos('QRCODE=', strRetAguardaFMCInt) + 8;
+        vQrCode := Copy(strRetAguardaFMCInt, vpos, Length(strRetAguardaFMCInt) - vpos);
+        DoQrCode(vQrCode);
+        end;
+
+        if strRetAguardaFMCInt <> '' then
+        begin
+          DoLog(FormatDateTime('dd/MM/yyyy', mydata) + '-' + strRetAguardaFMCInt);
+          arrMsg := SplitString(strRetAguardaFMCInt, '#');
+          retMsg := PAnsiChar(AnsiString(arrMsg[0]));
+        end
+        else
+        begin
+          arrMsg := nil;
+          retMsg := '';
+        end;
+
+        TarrMsg := Length(arrMsg);
+
+        if retMsg = '[MENU]' then
+        begin
+          if TarrMsg > 2 then
+          begin
+            CriarFormMensagem;
+            lMensagem.Caption := arrMsg[2].Replace('|', sLineBreak);
+          end
+          else
+          begin
+            CriarFormMensagem;
+            fMensagem.lblTitulo.Caption := arrMsg[0];
+            lMensagem.caption           := arrMsg[1].Replace('|', sLineBreak);
+          end;
+
+          fMensagem.ShowModal;
+
+          if fMensagem.ModalResult = mrCancel then
+          begin
+            CancelarFluxoMCInterativo();
+            AdicionaLog('CancelarFluxoMCInterativo()', '');
+            DoErro('Fluxo Cancelado');
+            ShowMessage('Fluxo Cancelado');
+            retMsg := '[ERROABORTAR]';
+            DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
+            AdicionaLog('Fluxo Cancelado', '');
+          end
+          else
+          begin
+            respFMsg := PAnsiChar(AnsiString(eResposta.Text));
+            ContinuaFuncaoMCInterativo(respFMsg);
+          end;
+        end;
+
+        DestruirMensagem;
+
+        if retMsg = '[PERGUNTA]' then
+        begin
+          CriarFormMensagem;
+          fMensagem.lblTitulo.caption := arrMsg[1];
+          lMensagem.Caption := arrMsg[2].Replace('|', sLineBreak);
+
+          fMensagem.ShowModal;
+
+          if fMensagem.ModalResult = mrCancel then
+          begin
+            CancelarFluxoMCInterativo();
+            AdicionaLog('CancelarFluxoMCInterativo()', '');
+            DoErro('Fluxo Cancelado');
+            ShowMessage('Fluxo Cancelado');
+            retMsg := '[ERROABORTAR]';
+            DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
+            AdicionaLog('Fluxo Cancelado', '');
+          end
+          else
+          begin
+            respFMsg := PAnsiChar(AnsiString(eResposta.Text));
+            ContinuaFuncaoMCInterativo(respFMsg);
+          end
+        end;
+        DestruirMensagem;
+
+        if retMsg = '[MSG]' then
+        begin
+          if TarrMsg >= 2 then
+          begin
+            if arrMsg[1].Contains('SALDO') and (not arrMsg[1].Contains('RETIRE'))
+            then
+            begin
+              CriarFormMensagem;
+              fMensagem.lblTitulo.Caption := arrMsg[0];
+              lMensagem.Caption           := arrMsg[1].Replace('|', sLineBreak);
+              fMensagem.ShowModal;
+            end;
+          end;
+        end;
+        DestruirMensagem;
+
+        if retMsg = '[ERRODISPLAY]' then
+        begin
+          DoErro(arrMsg[1].Replace('|', sLineBreak));
+          CriarFormMensagem;
+          fMensagem.lblTitulo.Caption := arrMsg[0];
+          lMensagem.Caption           := arrMsg[1].Replace('|', sLineBreak);
+          fMensagem.ShowModal;
+
+          if fMensagem.ModalResult = mrCancel then
+          begin
+            CancelarFluxoMCInterativo();
+            AdicionaLog('CancelarFluxoMCInterativo()', '');
+            DoErro('Fluxo Cancelado');
+            ShowMessage('Fluxo Cancelado');
+            retMsg := '[ERROABORTAR]';
+            DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
+            AdicionaLog('Fluxo Cancelado', '');
+          end
+          else
+          begin
+            respFMsg := PAnsiChar(AnsiString(eResposta.Text));
+            ContinuaFuncaoMCInterativo(respFMsg);
+          end;
+        end;
+        DestruirMensagem;
+
+        vMsg := nil;
+        vMsg := TStringList.Create;
+        respFMsg := nil;
+      end;
+
+      if retMsg = '[ERROABORTAR]' then
+      begin
+        DoErro(retMsg);
+        ShowMessage(retMsg);
+      end;
+
+      if retMsg = '[RETORNO]' then
+      begin
+
+        var
+        auxUltimoRet: string := AguardaFuncaoMCInterativo();
+        DoLog(FormatDateTime('dd/MM/yyyy', mydata) + auxUltimoRet);
+
+        if TarrMsg > 2 then
+        begin
+          if (operacao > 50) and (operacao < 60) then
+          begin
+            try
+              FileCreate(Application.ExeName + 'concluiupix.txt');
+            except
+              on E: Exception do
+              begin
+                DoErro('Erro - ' + E.Message);
+                AdicionaLog('Erro - ' + E.Message, '');
+              end;
+            end;
+          end;
+
+          strCupom := String(arrMsg[15].Replace('CAMPO122=', '').Replace('|', sLineBreak).Replace('CORTAR', '-------------------------------'));
+
+          var
+          auxCupom := strCupom + '-------------------------------' + sLineBreak + sLineBreak + strCupom;
+          nsuRet   := String(arrMsg[5].Replace('CAMPO0133=', ''));
+
+        end;
+
+        if TarrMsg = 2 then
+        begin
+          if arrMsg[1].Contains('CPF') then
+          begin
+            var
+            aux      := arrMsg[1].Split(['=']);
+            strCupom := 'CPF Coletado: ' + aux[1];
+            DoCPF(aux[1]);
+          end
+          else
+          begin
+            var
+            aux      := arrMsg[1].Replace('RETORNO', '').Replace('|', sLineBreak);
+            strCupom := aux;
+          end;
+        end;
+
+        // ENVIAR DADOS DO COMPROVANTE EM EVENTO
+        if Length(strCupom) > 50 then
+        begin
+            Result := True;
+            DoComprovante(strCupom);
+        end;
+        //DoComprovante(System.String.Join(sLineBreak, arrMsg));
+
+        retFim := 0;
+
+        if (operacao <> 98) and (operacao <> 99) then
+        begin
+          if confirmar then
+          begin
+            retFim := FinalizaFuncaoMCInterativo(98,
+                      PAnsiChar(AnsiString(FMultiConfig.FCNPJ)),
+                      parcela,
+                      PAnsiChar(AnsiString(cupom)),
+                      PAnsiChar(AnsiString(valor)),
+                      PAnsiChar(AnsiString(nsuRet)),
+                      PAnsiChar(AnsiString(FMultiConfig.FData)),
+                      PAnsiChar(AnsiString(FMultiConfig.FPDV)),
+                      PAnsiChar(AnsiString(FMultiConfig.FCodLoja)),
+                      StrToInt(FMultiConfig.FComunicacao.PadLeft(1,'0')),
+                      '');
+
+          end
+          else
+          begin
+            retFim := FinalizaFuncaoMCInterativo(99,
+                      PAnsiChar(AnsiString(FMultiConfig.FCNPJ)),
+                      parcela,
+                      PAnsiChar(AnsiString(cupom)),
+                      PAnsiChar(AnsiString(valor)),
+                      PAnsiChar(AnsiString(nsuRet)),
+                      PAnsiChar(AnsiString(FMultiConfig.FData)),
+                      PAnsiChar(AnsiString(FMultiConfig.FPDV)),
+                      PAnsiChar(AnsiString(FMultiConfig.FCodLoja)),
+                      StrToInt(FMultiConfig.FComunicacao.PadLeft(1,'0')),
+                      '');
+          end;
+
+          AdicionaLog('FinalizaFuncaoMCInterativo()', '');
+
+          var
+            strAguardaFMCInt: string := AguardaFuncaoMCInterativo();
+
+          var
+            count: Integer := 0;
+
+          while (not strAguardaFMCInt.Contains('RETORNO')) and (count < 15) do
+          begin
+            DoLog(FormatDateTime('dd/MM/yyyy', mydata) + strAguardaFMCInt);
+            strAguardaFMCInt := AguardaFuncaoMCInterativo();
+            count            := count + 1;
+          end;
+
+          DoLog(FormatDateTime('dd/MM/yyyy', mydata) + strAguardaFMCInt);
+
+        end
+
+        else
+        begin
+          retFim := 0;
+        end;
+
+        if retFim = 0 then
+        begin
+          DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - FIM DA TRANSAÇÃO');
+        end
+        else
+        begin
+          DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - ERRO: ');
+        end;
+      end;
+
+    end
+    else
+    begin
+      RetornaErro();
+      DoErro('Erro - IniciaFuncaoMCInterativo - Codigo do Erro: ' + Retorno.ToString());
+      ShowMessage('Erro - IniciaFuncaoMCInterativo - Codigo do Erro: ' + Retorno.ToString());
+      AdicionaLog('Erro - IniciaFuncaoMCInterativo', '');
+    end
+  end
+
+end;
+
+function TDTMultiplusCard.ExtrairValor(const ATexto, APattern: string): string;
+var
+  Regex: TRegEx;
+  Match: TMatch;
+begin
+  Regex := TRegEx.Create(APattern);
+  Match := Regex.Match(ATexto);
+  if Match.Success then
+    Result := Match.Groups[1].Value
+  else
+    Result := '';
+end;
+
+procedure TDTMultiplusCard.VerificaArquivo(sNomeArquivo: string);
+var
+  Tamanho : Integer;
+  existe  : Boolean;
+begin
+      Append(arq);
+      Tamanho := FileSize(arq);
+      existe  := FileExists(ExpandFileName(GetCurrentDir + '\..\..\') + sNomeArquivo + '.log');
+
+      if existe = True and (Tamanho >= 314572800) then
+      begin
+           try
+              DeleteFile(PChar(ExpandFileName(GetCurrentDir + '\..\..\') + sNomeArquivo + '_old.log'));
+              MoveFile(PChar(ExpandFileName(GetCurrentDir + '\..\..\') + sNomeArquivo + '.log'),PChar(ExpandFileName(GetCurrentDir + '\..\..\') + sNomeArquivo + '_old.log'));
+           except
+
+           end;
+      end;
+
+end;
+
+{ TFormMensagem }
+
+procedure TFormMensagem.BotaoCancelarClick(Sender: TObject);
+begin
+  ModalResult := mrCancel;
+end;
+
+procedure TFormMensagem.BotaoOkClick(Sender: TObject);
+begin
+  ModalResult := mrOk;
+end;
+
+constructor TFormMensagem.Create(AOwner: TComponent);
+begin
+     inherited Create(AOwner);
+  // Configurações do Formulário
+  BorderIcons  := [];
+  BorderStyle  := bsDialog;
+  ClientHeight := 245;
+  ClientWidth  := 564;
+  Color        := clBtnFace;
+  Font.Name    := 'Tahoma';
+  Font.Size    := 8;
+  KeyPreview   := True;
+  Position     := poScreenCenter;
+  Caption      := '';
+
+  // Painel Título
+  FpnTitulo := TPanel.Create(Self);
+  with FpnTitulo do
+  begin
+    Parent := Self;
+    Left := 0;
+    Top := 0;
+    Width := 564;
+    Height := 46;
+    Align := alTop;
+    ParentBackground := False;
+    ParentFont := False;
+    StyleElements := [];
+  end;
+
+  // Shape do Título
+  FshpTitulo := TShape.Create(FpnTitulo);
+  with FshpTitulo do
+  begin
+    Parent := FpnTitulo;
+    Align := alClient;
+    Brush.Color := 10455853;
+    Pen.Color   := 6403220;
+    Pen.Style   := psDot;
+  end;
+
+  // Label Título
+  FlblTitulo := TLabel.Create(FpnTitulo);
+  with FlblTitulo do
+  begin
+    Name := 'lbltitulo';
+    Parent := FpnTitulo;
+    Align := alClient;
+    Alignment := taCenter;
+    Caption := 'Mensagem';
+    Font.Name := 'Consolas';
+    Font.Size := 14;
+    Font.Color := clWhite;
+    Layout := tlCenter;
+    ParentFont := False;
+    StyleElements := [];
+  end;
+
+  // Painel Mensagem
+  FpnMensagem := TPanel.Create(Self);
+  with FpnMensagem do
+  begin
+    Parent := Self;
+    Align := alClient;
+    BevelInner := bvSpace;
+    BevelKind := bkFlat;
+    BevelOuter := bvLowered;
+    Font.Name := 'Tahoma';
+    Font.Size := 12;
+    ParentFont := False;
+    StyleElements := [];
+  end;
+
+  // Label Mensagem
+  FlMensagem := TLabel.Create(FpnMensagem);
+  with FlMensagem do
+  begin
+    Parent := FpnMensagem;
+    Align := alClient;
+    Alignment := taCenter;
+    WordWrap := True;
+    Layout := tlCenter;
+    Caption := '';
+    Font.Name := 'Arial';
+    Font.Size := 10;
+    ParentFont := False;
+    StyleElements := [];
+  end;
+
+  // Painel Botões
+  FpnBotoes := TPanel.Create(Self);
+  with FpnBotoes do
+  begin
+    Parent := Self;
+    Align := alBottom;
+    Height := 45;
+    BevelOuter := bvNone;
+    ParentBackground := False;
+    ParentFont := False;
+  end;
+
+  // Botão OK
+  FbOK := TButton.Create(FpnBotoes);
+  with FbOK do
+  begin
+    Parent := FpnBotoes;
+    Align := alLeft;
+    Width := 100;
+    Caption := 'Ok';
+    OnClick := BotaoOkClick;
+    Cursor := crHandPoint;
+  end;
+
+  // Botão Cancelar
+  FbCancelar := TButton.Create(FpnBotoes);
+  with FbCancelar do
+  begin
+    Parent := FpnBotoes;
+    Align := alRight;
+    Width := 100;
+    Caption := 'Cancelar (Esc)';
+    OnClick := BotaoCancelarClick;
+    Cursor := crHandPoint;
+  end;
+
+  // Caixa de Resposta
+  FeResposta := TEdit.Create(FpnMensagem);
+  with FeResposta do
+  begin
+    Parent := FpnMensagem;
+    Align := alBottom;
+    Width := 417;
+    Height := 21;
+    TabOrder := 0;
+  end;
+
+end;
+
+end.

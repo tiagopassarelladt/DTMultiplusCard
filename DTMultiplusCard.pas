@@ -12,8 +12,10 @@ uses
   Vcl.Dialogs,
   Vcl.StdCtrls,
   Vcl.Controls,
+  vcl.ExtCtrls,
   System.RegularExpressions,
   system.IniFiles,
+  Vcl.Buttons,
   Vcl.Graphics;
 
 
@@ -21,7 +23,7 @@ type TOperacao = (tpMult_DEBITO_A_VISTA, tpMult_DEBITO, tpMult_CREDITO, tpMult_C
                   tpMult_PRE_AUTORIZACAO, tpMult_CONF_PRE_AUTORIZACAO, tpMult_CANC_PRE_AUTORIZACAO,
                   tpMult_CONSULTA_SALDO_CREDITO, tpMult_CONSULTA_SALDO_DEBITO,
                   tpMult_EXCLUIR_BINS, tpMult_REIMPRESSAO, tpMult_COLETA_DE_CPF,
-                  tpMult_OPCOES_PSP, tpMult_PSP_CLIENTE, tpMult_MERCADO_PAGO, tpMult_PICPAY, tpMult_CANCELAR_ESTORNO, tpMult_STATUS_TRANSACAO
+                  tpMult_OPCOES_PSP, tpMult_PSP_CLIENTE, tpMult_MERCADO_PAGO, tpMult_PICPAY, tpMult_CANCELAR_ESTORNO, tpMult_CANCELAR_ESTORNO_PIX, tpMult_STATUS_TRANSACAO
                   );
 
 type
@@ -107,6 +109,11 @@ type
     arrMsg         : TArray<string>;
     fMensagem      : TForm;
     lMensagem      : TLabel;
+    lblTitulo      : TLabel;
+    pnTitulo       : TPanel;
+    pnMensagem     : TPanel;
+    pnBotoes       : TPanel;
+    shpTitulo      : TShape;
     eResposta      : TEdit;
     bOk            : TButton;
     bCancelar      : TButton;
@@ -116,8 +123,9 @@ type
     FOnQrCode      : TOnQrCode;
     FMultiConfig   : TMultConfig;
     FRetornoPgto   : TMultRetorno;
+    FMensagemReduzida: Boolean;
 
-    procedure DoLog(const Conteudo: string);
+    procedure DoLog(Conteudo: string);
     procedure DoComprovante(const Conteudo: string);
     procedure DoQrCode(const Conteudo: string);
     procedure DoCPF(const Conteudo: string);
@@ -148,14 +156,15 @@ type
 
   published
 
-    property Configuracoes  : TMultConfig                 read FMultiConfig             write FMultiConfig;
-    property RetornoPgto    : TMultRetorno                read FRetornoPgto             write FRetornoPgto;
+    property Configuracoes    : TMultConfig                 read FMultiConfig             write FMultiConfig;
+    property RetornoPgto      : TMultRetorno                read FRetornoPgto             write FRetornoPgto;
+    property LogSimplificado  : Boolean                     read FMensagemReduzida        write FMensagemReduzida;
 
-    property OnLog          : TOnLogEvent                 read FOnLog                   write FOnLog;
-    property OnComprovante  : TOnComprovante              read FComprovante             write FComprovante;
-    property OnQrCode       : TOnQrCode                   read FOnQrCode                write FOnQrCode;
-    property OnCPF          : TOnCPF                      read FOnCPF                   write FOnCPF;
-    property OnErro         : TOnErro                     read FOnErro                  write FOnErro;
+    property OnLog            : TOnLogEvent                 read FOnLog                   write FOnLog;
+    property OnComprovante    : TOnComprovante              read FComprovante             write FComprovante;
+    property OnQrCode         : TOnQrCode                   read FOnQrCode                write FOnQrCode;
+    property OnCPF            : TOnCPF                      read FOnCPF                   write FOnCPF;
+    property OnErro           : TOnErro                     read FOnErro                  write FOnErro;
 
   end;
 
@@ -258,15 +267,27 @@ begin
 end;
 
 procedure TDTMultiplusCard.BotaoCancelarClick(Sender: TObject);
+var
+  Form: TCustomForm;
 begin
-    if (Sender is TButton) and (TButton(Sender).Owner is TForm) then
-       TForm(TButton(Sender).Owner).ModalResult := mrCancel; // Fecha o formulário com resultado Cancelar
+  if Sender is TControl then
+  begin
+    Form := GetParentForm(TControl(Sender));
+    if Assigned(Form) then
+      Form.ModalResult := mrCancel; // Fecha o formulário com resultado Cancelar
+  end;
 end;
 
 procedure TDTMultiplusCard.BotaoOkClick(Sender: TObject);
+var
+  Form: TCustomForm;
 begin
-    if (Sender is TButton) and (TButton(Sender).Owner is TForm) then
-       TForm(TButton(Sender).Owner).ModalResult := mrOk; // Fecha o formulário com resultado OK
+  if Sender is TControl then
+  begin
+    Form := GetParentForm(TControl(Sender));
+    if Assigned(Form) then
+      Form.ModalResult := mrOk; // Fecha o formulário com resultado OK
+  end;
 end;
 
 procedure TDTMultiplusCard.CarregarCampos(const ATexto: string);
@@ -374,65 +395,114 @@ end;
 
 procedure TDTMultiplusCard.CriarFormMensagem;
 begin
-  fMensagem := TForm.Create(nil);
-  try
-    // Configurações do Formulário
-    fMensagem.BorderStyle := bsSizeToolWin;
-    fMensagem.ClientHeight := 242;
-    fMensagem.ClientWidth := 438;
-    fMensagem.Color := clBtnFace;
-    fMensagem.Font.Name := 'Tahoma';
-    fMensagem.Font.Size := 8;
-    fMensagem.Position := poOwnerFormCenter;
-    fMensagem.Caption := 'Mensagem';
+fMensagem := TForm.Create(nil);
+try
+  // Configurações do Formulário
+  fMensagem.BorderIcons  := [];
+  fMensagem.BorderStyle  := bsDialog;
+  fMensagem.ClientHeight := 245;
+  fMensagem.ClientWidth  := 564;
+  fMensagem.Color        := clBtnFace;
+  fMensagem.Font.Name    := 'Tahoma';
+  fMensagem.Font.Size    := 8;
+  fMensagem.KeyPreview   := True;
+  fMensagem.Position     := poScreenCenter;
+  fMensagem.Caption      := '';
 
-    // Label (lMensagem)
-    lMensagem := TLabel.Create(fMensagem);
-    lMensagem.Parent := fMensagem;
-    lMensagem.Left := 8;
-    lMensagem.Top := 8;
-    lMensagem.Width := 51;
-    lMensagem.Height := 13;
-    lMensagem.Caption := 'Mensagem';
+  // Painel Título
+  pnTitulo                  := TPanel.Create(fMensagem);
+  pnTitulo.Parent           := fMensagem;
+  pnTitulo.Left             := 0;
+  pnTitulo.Top              := 0;
+  pnTitulo.Width            := 564;
+  pnTitulo.Height           := 46;
+  pnTitulo.Align            := alTop;
+  pnTitulo.ParentBackground := False;
+  pnTitulo.ParentFont       := False;
+  pnTitulo.StyleElements    := [];
 
-    // Edit (eResposta)
-    eResposta := TEdit.Create(fMensagem);
-    eResposta.Parent := fMensagem;
-    eResposta.Left := 8;
-    eResposta.Top := 213;
-    eResposta.Width := 417;
-    eResposta.Height := 21;
-    eResposta.TabOrder := 0;
+  shpTitulo             := TShape.Create(pnTitulo);
+  shpTitulo.Parent      := pnTitulo;
+  shpTitulo.Align       := alClient;
+  shpTitulo.Brush.Color := 10455853;
+  shpTitulo.Pen.Color   := 6403220;
+  shpTitulo.Pen.Style   := psClear;
 
-    // Botão OK (bOK)
-    bOK := TButton.Create(fMensagem);
-    bOK.Parent := fMensagem;
-    bOK.Left := 336;
-    bOK.Top := 19;
-    bOK.Width := 75;
-    bOK.Height := 25;
-    bOK.Caption := 'OK';
-    bOK.TabOrder := 1;
+  lblTitulo            := TLabel.Create(pnTitulo);
+  lblTitulo.Parent     := pnTitulo;
+  lblTitulo.Align      := alClient;
+  lblTitulo.Alignment  := taCenter;
+  lblTitulo.Caption    := 'Atenção';
+  lblTitulo.Font.Name  := 'Consolas';
+  lblTitulo.Font.Size  := 14;
+  lblTitulo.Font.Color := clWhite;
+  lblTitulo.Layout     := tlCenter;
+  lblTitulo.ParentFont := False;
+  lblTitulo.Caption    := 'Mensagem';
+  lblTitulo.StyleElements := [];
 
-    // Evento OnClick para o botão OK
-    bOK.OnClick := BotaoOkClick;
+  // Painel Mensagem
+  pnMensagem               := TPanel.Create(fMensagem);
+  pnMensagem.Parent        := fMensagem;
+  pnMensagem.Align         := alClient;
+  pnMensagem.BevelInner    := bvSpace;
+  pnMensagem.BevelKind     := bkFlat;
+  pnMensagem.BevelOuter    := bvLowered;
+  pnMensagem.Font.Name     := 'Tahoma';
+  pnMensagem.Font.Size     := 12;
+  pnMensagem.ParentFont    := False;
+  pnMensagem.StyleElements := [];
 
-    // Botão Cancelar (bCancelar)
-    bCancelar := TButton.Create(fMensagem);
-    bCancelar.Parent := fMensagem;
-    bCancelar.Left := 336;
-    bCancelar.Top := 64;
-    bCancelar.Width := 75;
-    bCancelar.Height := 25;
-    bCancelar.Caption := 'Cancelar';
-    bCancelar.TabOrder := 2;
+  lMensagem             := TLabel.Create(pnMensagem);
+  lMensagem.Parent      := pnMensagem;
+  lMensagem.Align       := alClient;
+  lMensagem.Alignment   := taCenter;
+  lMensagem.WordWrap    := True;
+  lMensagem.Layout      := tlCenter;
+  lMensagem.Caption     := '';
+  lMensagem.Font.Name   := 'Arial';
+  lMensagem.Font.Size   := 10;
+  lMensagem.ParentFont  := False;
+  lMensagem.StyleElements := [];
 
-    // Evento OnClick para o botão Cancelar
-    bCancelar.OnClick := BotaoCancelarClick;
+  // Painel Botões
+  pnBotoes                  := TPanel.Create(fMensagem);
+  pnBotoes.Parent           := fMensagem;
+  pnBotoes.Align            := alBottom;
+  pnBotoes.Height           := 45;
+  pnBotoes.BevelOuter       := bvNone;
+  pnBotoes.ParentBackground := False;
+  pnBotoes.ParentFont       := False;
 
-  finally
+  // Botão OK
+  bOK         := TButton.Create(pnBotoes);
+  bOK.Parent  := pnBotoes;
+  bOK.Align   := alLeft;
+  bOK.Width   := 100;
+  bOK.Caption := 'Ok';
+  bOK.OnClick := BotaoOkClick;
+  bOk.Cursor  := crHandPoint;
 
-  end;
+  // Botão Cancelar
+  bCancelar         := TButton.Create(pnBotoes);
+  bCancelar.Parent  := pnBotoes;
+  bCancelar.Align   := alRight;
+  bCancelar.Width   := 100;
+  bCancelar.Caption := 'Cancelar (Esc)';
+  bCancelar.OnClick := BotaoCancelarClick;
+  bCancelar.Cursor  := crHandPoint;
+
+  // Caixa de Resposta
+  eResposta          := TEdit.Create(pnMensagem);
+  eResposta.Parent   := pnMensagem;
+  eResposta.Align    := alBottom;
+  eResposta.Width    := 417;
+  eResposta.Height   := 21;
+  eResposta.TabOrder := 0;
+finally
+
+end;
+
 end;
 
 destructor TDTMultiplusCard.Destroy;
@@ -466,8 +536,18 @@ begin
        FOnErro(Self, Conteudo);
 end;
 
-procedure TDTMultiplusCard.DoLog(const Conteudo: string);
+procedure TDTMultiplusCard.DoLog(Conteudo: string);
+var
+Posicao : integer;
 begin
+     if FMensagemReduzida then
+     begin
+        Conteudo := Conteudo;
+        Posicao := Pos('#', Conteudo);
+        if Posicao > 0 then
+          Conteudo := Copy(Conteudo, Posicao + 1, Length(Conteudo));
+     end;
+
      if Assigned(FOnLog) then
        FOnLog(Self, Conteudo);
 end;
@@ -604,7 +684,8 @@ begin
       tpMult_PSP_CLIENTE             : operacao := 51;
       tpMult_MERCADO_PAGO            : operacao := 52;
       tpMult_PICPAY                  : operacao := 53;
-      tpMult_CANCELAR_ESTORNO        : operacao := 54;
+      tpMult_CANCELAR_ESTORNO        : operacao := 5;
+      tpMult_CANCELAR_ESTORNO_PIX    : operacao := 54; // pix
       tpMult_STATUS_TRANSACAO        : operacao := 56;
 
     end;
@@ -614,7 +695,7 @@ begin
     Valor   := FormatFloat('#,##0.00', StrToFloat(Valor));
 
     Retorno := IniciaFuncaoMCInterativo(operacao,
-                                        PAnsiChar(AnsiString(FMultiConfig.FCNPJ)),
+                                        PAnsiChar(AnsiString(FMultiConfig.FCNPJ.Replace('.','').Replace('-','').Replace('/','').Replace(' ',''))),
                                         parcela,
                                         PAnsiChar(AnsiString(cupom)),
                                         PAnsiChar(AnsiString(valor)),
@@ -622,7 +703,7 @@ begin
                                         PAnsiChar(AnsiString(FMultiConfig.FData)),
                                         PAnsiChar(AnsiString(FMultiConfig.FPDV)),
                                         PAnsiChar(AnsiString(FMultiConfig.FCodLoja)),
-                                        StrToInt(FMultiConfig.FComunicacao.PadLeft(1,'0')),
+                                        0,
                                         '');
     mydata := Now;
 
@@ -643,7 +724,8 @@ begin
       confirmar := True;
       vMsg      := TStringList.Create;
 
-      while (retMsg <> '[ERROABORTAR]') and (retMsg <> '[RETORNO]') and
+      while (retMsg <> '[ERROABORTAR]') and
+            (retMsg <> '[RETORNO]') and
             (retMsg <> '[ERRODISPLAY]') do
       begin
         strRetAguardaFMCInt := AguardaFuncaoMCInterativo();
@@ -684,8 +766,9 @@ begin
           else
           begin
             CriarFormMensagem;
-            fMensagem.Caption := arrMsg[0];
+            lblTitulo.Caption := arrMsg[0];
             lMensagem.Caption := arrMsg[1].Replace('|', sLineBreak);
+
           end;
 
           fMensagem.ShowModal;
@@ -695,7 +778,12 @@ begin
             CancelarFluxoMCInterativo();
             AdicionaLog('CancelarFluxoMCInterativo()', '');
             DoErro('Fluxo Cancelado');
-            ShowMessage('Fluxo Cancelado');
+            CriarFormMensagem;
+            lMensagem.Caption := 'Fluxo Cancelado';
+            bCancelar.Visible := False;
+            eResposta.Visible := false;
+            fMensagem.ShowModal;
+            DestruirMensagem;
             retMsg := '[ERROABORTAR]';
             DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
             AdicionaLog('Fluxo Cancelado', '');
@@ -712,7 +800,7 @@ begin
         if retMsg = '[PERGUNTA]' then
         begin
           CriarFormMensagem;
-          fMensagem.Caption := arrMsg[1];
+          lblTitulo.Caption := arrMsg[1];
           lMensagem.Caption := arrMsg[2].Replace('|', sLineBreak);
           fMensagem.ShowModal;
 
@@ -721,7 +809,12 @@ begin
             CancelarFluxoMCInterativo();
             AdicionaLog('CancelarFluxoMCInterativo()', '');
             DoErro('Fluxo Cancelado');
-            ShowMessage('Fluxo Cancelado');
+            CriarFormMensagem;
+            lMensagem.Caption := 'Fluxo Cancelado';
+            bCancelar.Visible := False;
+            eResposta.Visible := false;
+            fMensagem.ShowModal;
+            DestruirMensagem;
             retMsg := '[ERROABORTAR]';
             DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
             AdicionaLog('Fluxo Cancelado', '');
@@ -733,6 +826,7 @@ begin
           end
         end;
         DestruirMensagem;
+
         if retMsg = '[MSG]' then
         begin
           if TarrMsg >= 2 then
@@ -741,18 +835,19 @@ begin
             then
             begin
               CriarFormMensagem;
-              fMensagem.Caption := arrMsg[0];
+              lblTitulo.Caption := arrMsg[0];
               lMensagem.Caption := arrMsg[1].Replace('|', sLineBreak);
               fMensagem.ShowModal;
             end;
           end;
         end;
         DestruirMensagem;
+
         if retMsg = '[ERRODISPLAY]' then
         begin
           DoErro(arrMsg[1].Replace('|', sLineBreak));
           CriarFormMensagem;
-          fMensagem.Caption := arrMsg[0];
+          lblTitulo.Caption := arrMsg[0];
           lMensagem.Caption := arrMsg[1].Replace('|', sLineBreak);
           fMensagem.ShowModal;
 
@@ -761,7 +856,12 @@ begin
             CancelarFluxoMCInterativo();
             AdicionaLog('CancelarFluxoMCInterativo()', '');
             DoErro('Fluxo Cancelado');
-            ShowMessage('Fluxo Cancelado');
+            CriarFormMensagem;
+            lMensagem.Caption := 'Fluxo Cancelado';
+            bCancelar.Visible := False;
+            eResposta.Visible := false;
+            fMensagem.ShowModal;
+            DestruirMensagem;
             retMsg := '[ERROABORTAR]';
             DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
             AdicionaLog('Fluxo Cancelado', '');
@@ -773,7 +873,6 @@ begin
           end;
         end;
         DestruirMensagem;
-        Sleep(500);
 
         vMsg := nil;
         vMsg := TStringList.Create;
@@ -783,7 +882,12 @@ begin
       if retMsg = '[ERROABORTAR]' then
       begin
         DoErro(retMsg);
-        ShowMessage(retMsg);
+        CriarFormMensagem;
+        lMensagem.Caption := retMsg;
+        bCancelar.Visible := False;
+        eResposta.Visible := false;
+        fMensagem.ShowModal;
+        DestruirMensagem;
       end;
 
       if retMsg = '[RETORNO]' then
@@ -792,8 +896,6 @@ begin
         var
         auxUltimoRet: string := AguardaFuncaoMCInterativo();
         DoLog(FormatDateTime('dd/MM/yyyy', mydata) + auxUltimoRet);
-
-        Sleep(500);
 
         if TarrMsg > 2 then
         begin
@@ -916,7 +1018,12 @@ begin
     begin
       RetornaErro();
       DoErro('Erro - IniciaFuncaoMCInterativo - Codigo do Erro: ' + Retorno.ToString());
-      ShowMessage('Erro - IniciaFuncaoMCInterativo - Codigo do Erro: ' + Retorno.ToString());
+      CriarFormMensagem;
+      lMensagem.Caption := 'Erro - IniciaFuncaoMCInterativo - Codigo do Erro: ' + Retorno.ToString();
+      bCancelar.Visible := False;
+      eResposta.Visible := false;
+      fMensagem.ShowModal;
+      DestruirMensagem;
       AdicionaLog('Erro - IniciaFuncaoMCInterativo', '');
     end
   end
@@ -958,3 +1065,4 @@ begin
 end;
 
 end.
+

@@ -307,7 +307,7 @@ object FormPrincipal: TFormPrincipal
   end
   object lbLog: TMemo
     Left = 8
-    Top = 136
+    Top = 135
     Width = 609
     Height = 311
     Margins.Top = 0
@@ -614,12 +614,13 @@ object FormPrincipal: TFormPrincipal
     StyleElements = [seFont, seBorder]
   end
   object DTMultiplusCard1: TDTMultiplusCard
+    LogSimplificado = False
     OnLog = DTMultiplusCard1Log
     OnComprovante = DTMultiplusCard1Comprovante
     OnQrCode = DTMultiplusCard1QrCode
     OnCPF = DTMultiplusCard1CPF
     OnErro = DTMultiplusCard1Erro
-    Left = 320
-    Top = 264
+    Left = 336
+    Top = 280
   end
 end
