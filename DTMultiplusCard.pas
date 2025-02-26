@@ -893,10 +893,6 @@ begin
       if retMsg = '[RETORNO]' then
       begin
 
-        var
-        auxUltimoRet: string := AguardaFuncaoMCInterativo();
-        DoLog(FormatDateTime('dd/MM/yyyy', mydata) + auxUltimoRet);
-
         if TarrMsg > 2 then
         begin
           if (operacao > 50) and (operacao < 60) then
@@ -943,7 +939,6 @@ begin
             Result := True;
             DoComprovante(strCupom);
         end;
-        //DoComprovante(System.String.Join(sLineBreak, arrMsg));
 
         retFim := 0;
 
@@ -952,7 +947,7 @@ begin
           if confirmar then
           begin
             retFim := FinalizaFuncaoMCInterativo(98,
-                      PAnsiChar(AnsiString(FMultiConfig.FCNPJ)),
+                      PAnsiChar(AnsiString(FMultiConfig.FCNPJ.Replace('.','').Replace('-','').Replace('/','').Replace(' ',''))),
                       parcela,
                       PAnsiChar(AnsiString(cupom)),
                       PAnsiChar(AnsiString(valor)),
@@ -960,14 +955,13 @@ begin
                       PAnsiChar(AnsiString(FMultiConfig.FData)),
                       PAnsiChar(AnsiString(FMultiConfig.FPDV)),
                       PAnsiChar(AnsiString(FMultiConfig.FCodLoja)),
-                      StrToInt(FMultiConfig.FComunicacao.PadLeft(1,'0')),
+                      0,
                       '');
-
           end
           else
           begin
             retFim := FinalizaFuncaoMCInterativo(99,
-                      PAnsiChar(AnsiString(FMultiConfig.FCNPJ)),
+                      PAnsiChar(AnsiString(FMultiConfig.FCNPJ.Replace('.','').Replace('-','').Replace('/','').Replace(' ',''))),
                       parcela,
                       PAnsiChar(AnsiString(cupom)),
                       PAnsiChar(AnsiString(valor)),
@@ -975,7 +969,7 @@ begin
                       PAnsiChar(AnsiString(FMultiConfig.FData)),
                       PAnsiChar(AnsiString(FMultiConfig.FPDV)),
                       PAnsiChar(AnsiString(FMultiConfig.FCodLoja)),
-                      StrToInt(FMultiConfig.FComunicacao.PadLeft(1,'0')),
+                      0,
                       '');
           end;
 

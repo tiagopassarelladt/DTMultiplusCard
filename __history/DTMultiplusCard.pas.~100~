@@ -100,27 +100,6 @@ type TMultRetorno = class(TPersistent)
 end;
 
 type
-  TFormMensagem = class(TForm)
-  private
-    FpnTitulo: TPanel;
-    FshpTitulo: TShape;
-    FlblTitulo: TLabel;
-    FpnMensagem: TPanel;
-    FlMensagem: TLabel;
-    FpnBotoes: TPanel;
-    FbOK: TButton;
-    FbCancelar: TButton;
-    FeResposta: TEdit;
-    procedure BotaoOkClick(Sender: TObject);
-    procedure BotaoCancelarClick(Sender: TObject);
-  public
-    constructor Create(AOwner: TComponent); override;
-    property lblTitulo: TLabel read FlblTitulo;
-    property lMensagem: TLabel read FlMensagem;
-    property eResposta: TEdit read FeResposta;
-  end;
-
-type
   TDTMultiplusCard = class(TComponent)
   private
     arq            : TextFile;
@@ -415,128 +394,114 @@ begin
 end;
 
 procedure TDTMultiplusCard.CriarFormMensagem;
-var
-  fMensagem: TFormMensagem;
 begin
-  fMensagem := TFormMensagem.Create(nil);
-  try
-//    fMensagem.lblTitulo.Caption := arrMsg[1];
-//    fMensagem.lMensagem.Caption := arrMsg[2].Replace('|', sLineBreak);
-//    if fMensagem.ShowModal = mrOk then
-//    begin
-//      // Processa a resposta se necessário...
-//    end;
-  finally
-   // fMensagem.Free;
-  end;
-//fMensagem := TForm.Create(nil);
-//try
-//  // Configurações do Formulário
-//  fMensagem.BorderIcons  := [];
-//  fMensagem.BorderStyle  := bsDialog;
-//  fMensagem.ClientHeight := 245;
-//  fMensagem.ClientWidth  := 564;
-//  fMensagem.Color        := clBtnFace;
-//  fMensagem.Font.Name    := 'Tahoma';
-//  fMensagem.Font.Size    := 8;
-//  fMensagem.KeyPreview   := True;
-//  fMensagem.Position     := poScreenCenter;
-//  fMensagem.Caption      := '';
-//
-//  // Painel Título
-//  pnTitulo                  := TPanel.Create(fMensagem);
-//  pnTitulo.Parent           := fMensagem;
-//  pnTitulo.Left             := 0;
-//  pnTitulo.Top              := 0;
-//  pnTitulo.Width            := 564;
-//  pnTitulo.Height           := 46;
-//  pnTitulo.Align            := alTop;
-//  pnTitulo.ParentBackground := False;
-//  pnTitulo.ParentFont       := False;
-//  pnTitulo.StyleElements    := [];
-//
-//  shpTitulo             := TShape.Create(pnTitulo);
-//  shpTitulo.Parent      := pnTitulo;
-//  shpTitulo.Align       := alClient;
-//  shpTitulo.Brush.Color := 10455853;
-//  shpTitulo.Pen.Color   := 6403220;
-//  shpTitulo.Pen.Style   := psDot;
-//
-//  lblTitulo            := TLabel.Create(pnTitulo);
-//  lblTitulo.Name       := 'lbltitulo';
-//  lblTitulo.Parent     := pnTitulo;
-//  lblTitulo.Align      := alClient;
-//  lblTitulo.Alignment  := taCenter;
-//  lblTitulo.Caption    := 'Atenção';
-//  lblTitulo.Font.Name  := 'Consolas';
-//  lblTitulo.Font.Size  := 14;
-//  lblTitulo.Font.Color := clWhite;
-//  lblTitulo.Layout     := tlCenter;
-//  lblTitulo.ParentFont := False;
-//  lblTitulo.Caption    := 'Mensagem';
-//  lblTitulo.StyleElements := [];
-//
-//  // Painel Mensagem
-//  pnMensagem               := TPanel.Create(fMensagem);
-//  pnMensagem.Parent        := fMensagem;
-//  pnMensagem.Align         := alClient;
-//  pnMensagem.BevelInner    := bvSpace;
-//  pnMensagem.BevelKind     := bkFlat;
-//  pnMensagem.BevelOuter    := bvLowered;
-//  pnMensagem.Font.Name     := 'Tahoma';
-//  pnMensagem.Font.Size     := 12;
-//  pnMensagem.ParentFont    := False;
-//  pnMensagem.StyleElements := [];
-//
-//  lMensagem             := TLabel.Create(pnMensagem);
-//  lMensagem.Parent      := pnMensagem;
-//  lMensagem.Align       := alClient;
-//  lMensagem.Alignment   := taCenter;
-//  lMensagem.WordWrap    := True;
-//  lMensagem.Layout      := tlCenter;
-//  lMensagem.Caption     := '';
-//  lMensagem.Font.Name   := 'Arial';
-//  lMensagem.Font.Size   := 10;
-//  lMensagem.ParentFont  := False;
-//  lMensagem.StyleElements := [];
-//
-//  // Painel Botões
-//  pnBotoes                  := TPanel.Create(fMensagem);
-//  pnBotoes.Parent           := fMensagem;
-//  pnBotoes.Align            := alBottom;
-//  pnBotoes.Height           := 45;
-//  pnBotoes.BevelOuter       := bvNone;
-//  pnBotoes.ParentBackground := False;
-//  pnBotoes.ParentFont       := False;
-//
-//  // Botão OK
-//  bOK         := TButton.Create(pnBotoes);
-//  bOK.Parent  := pnBotoes;
-//  bOK.Align   := alLeft;
-//  bOK.Width   := 100;
-//  bOK.Caption := 'Ok';
-//  bOK.OnClick := BotaoOkClick;
-//  bOk.Cursor  := crHandPoint;
-//
-//  // Botão Cancelar
-//  bCancelar         := TButton.Create(pnBotoes);
-//  bCancelar.Parent  := pnBotoes;
-//  bCancelar.Align   := alRight;
-//  bCancelar.Width   := 100;
-//  bCancelar.Caption := 'Cancelar (Esc)';
-//  bCancelar.OnClick := BotaoCancelarClick;
-//  bCancelar.Cursor  := crHandPoint;
-//
-//  // Caixa de Resposta
-//  eResposta          := TEdit.Create(pnMensagem);
-//  eResposta.Parent   := pnMensagem;
-//  eResposta.Align    := alBottom;
-//  eResposta.Width    := 417;
-//  eResposta.Height   := 21;
-//  eResposta.TabOrder := 0;
-//finally
+fMensagem := TForm.Create(nil);
+try
+  // Configurações do Formulário
+  fMensagem.BorderIcons  := [];
+  fMensagem.BorderStyle  := bsDialog;
+  fMensagem.ClientHeight := 245;
+  fMensagem.ClientWidth  := 564;
+  fMensagem.Color        := clBtnFace;
+  fMensagem.Font.Name    := 'Tahoma';
+  fMensagem.Font.Size    := 8;
+  fMensagem.KeyPreview   := True;
+  fMensagem.Position     := poScreenCenter;
+  fMensagem.Caption      := '';
 
-//end;
+  // Painel Título
+  pnTitulo                  := TPanel.Create(fMensagem);
+  pnTitulo.Parent           := fMensagem;
+  pnTitulo.Left             := 0;
+  pnTitulo.Top              := 0;
+  pnTitulo.Width            := 564;
+  pnTitulo.Height           := 46;
+  pnTitulo.Align            := alTop;
+  pnTitulo.ParentBackground := False;
+  pnTitulo.ParentFont       := False;
+  pnTitulo.StyleElements    := [];
+
+  shpTitulo             := TShape.Create(pnTitulo);
+  shpTitulo.Parent      := pnTitulo;
+  shpTitulo.Align       := alClient;
+  shpTitulo.Brush.Color := 10455853;
+  shpTitulo.Pen.Color   := 6403220;
+  shpTitulo.Pen.Style   := psClear;
+
+  lblTitulo            := TLabel.Create(pnTitulo);
+  lblTitulo.Parent     := pnTitulo;
+  lblTitulo.Align      := alClient;
+  lblTitulo.Alignment  := taCenter;
+  lblTitulo.Caption    := 'Atenção';
+  lblTitulo.Font.Name  := 'Consolas';
+  lblTitulo.Font.Size  := 14;
+  lblTitulo.Font.Color := clWhite;
+  lblTitulo.Layout     := tlCenter;
+  lblTitulo.ParentFont := False;
+  lblTitulo.Caption    := 'Mensagem';
+  lblTitulo.StyleElements := [];
+
+  // Painel Mensagem
+  pnMensagem               := TPanel.Create(fMensagem);
+  pnMensagem.Parent        := fMensagem;
+  pnMensagem.Align         := alClient;
+  pnMensagem.BevelInner    := bvSpace;
+  pnMensagem.BevelKind     := bkFlat;
+  pnMensagem.BevelOuter    := bvLowered;
+  pnMensagem.Font.Name     := 'Tahoma';
+  pnMensagem.Font.Size     := 12;
+  pnMensagem.ParentFont    := False;
+  pnMensagem.StyleElements := [];
+
+  lMensagem             := TLabel.Create(pnMensagem);
+  lMensagem.Parent      := pnMensagem;
+  lMensagem.Align       := alClient;
+  lMensagem.Alignment   := taCenter;
+  lMensagem.WordWrap    := True;
+  lMensagem.Layout      := tlCenter;
+  lMensagem.Caption     := '';
+  lMensagem.Font.Name   := 'Arial';
+  lMensagem.Font.Size   := 10;
+  lMensagem.ParentFont  := False;
+  lMensagem.StyleElements := [];
+
+  // Painel Botões
+  pnBotoes                  := TPanel.Create(fMensagem);
+  pnBotoes.Parent           := fMensagem;
+  pnBotoes.Align            := alBottom;
+  pnBotoes.Height           := 45;
+  pnBotoes.BevelOuter       := bvNone;
+  pnBotoes.ParentBackground := False;
+  pnBotoes.ParentFont       := False;
+
+  // Botão OK
+  bOK         := TButton.Create(pnBotoes);
+  bOK.Parent  := pnBotoes;
+  bOK.Align   := alLeft;
+  bOK.Width   := 100;
+  bOK.Caption := 'Ok';
+  bOK.OnClick := BotaoOkClick;
+  bOk.Cursor  := crHandPoint;
+
+  // Botão Cancelar
+  bCancelar         := TButton.Create(pnBotoes);
+  bCancelar.Parent  := pnBotoes;
+  bCancelar.Align   := alRight;
+  bCancelar.Width   := 100;
+  bCancelar.Caption := 'Cancelar (Esc)';
+  bCancelar.OnClick := BotaoCancelarClick;
+  bCancelar.Cursor  := crHandPoint;
+
+  // Caixa de Resposta
+  eResposta          := TEdit.Create(pnMensagem);
+  eResposta.Parent   := pnMensagem;
+  eResposta.Align    := alBottom;
+  eResposta.Width    := 417;
+  eResposta.Height   := 21;
+  eResposta.TabOrder := 0;
+finally
+
+end;
 
 end;
 
@@ -801,8 +766,9 @@ begin
           else
           begin
             CriarFormMensagem;
-            fMensagem.Caption := arrMsg[0];
+            lblTitulo.Caption := arrMsg[0];
             lMensagem.Caption := arrMsg[1].Replace('|', sLineBreak);
+
           end;
 
           fMensagem.ShowModal;
@@ -812,7 +778,12 @@ begin
             CancelarFluxoMCInterativo();
             AdicionaLog('CancelarFluxoMCInterativo()', '');
             DoErro('Fluxo Cancelado');
-            ShowMessage('Fluxo Cancelado');
+            CriarFormMensagem;
+            lMensagem.Caption := 'Fluxo Cancelado';
+            bCancelar.Visible := False;
+            eResposta.Visible := false;
+            fMensagem.ShowModal;
+            DestruirMensagem;
             retMsg := '[ERROABORTAR]';
             DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
             AdicionaLog('Fluxo Cancelado', '');
@@ -829,12 +800,8 @@ begin
         if retMsg = '[PERGUNTA]' then
         begin
           CriarFormMensagem;
-//          fMensagem.lblTitulo.caption := arrMsg[1];
-//          lMensagem.Caption := arrMsg[2].Replace('|', sLineBreak);
-
-          TLabel(fMensagem.FindComponent('lblTitulo')).Caption := arrMsg[1];
-          //lMensagem.Caption := arrMsg[2].Replace('|', sLineBreak);
-
+          lblTitulo.Caption := arrMsg[1];
+          lMensagem.Caption := arrMsg[2].Replace('|', sLineBreak);
           fMensagem.ShowModal;
 
           if fMensagem.ModalResult = mrCancel then
@@ -842,7 +809,12 @@ begin
             CancelarFluxoMCInterativo();
             AdicionaLog('CancelarFluxoMCInterativo()', '');
             DoErro('Fluxo Cancelado');
-            ShowMessage('Fluxo Cancelado');
+            CriarFormMensagem;
+            lMensagem.Caption := 'Fluxo Cancelado';
+            bCancelar.Visible := False;
+            eResposta.Visible := false;
+            fMensagem.ShowModal;
+            DestruirMensagem;
             retMsg := '[ERROABORTAR]';
             DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
             AdicionaLog('Fluxo Cancelado', '');
@@ -863,7 +835,7 @@ begin
             then
             begin
               CriarFormMensagem;
-              fMensagem.Caption := arrMsg[0];
+              lblTitulo.Caption := arrMsg[0];
               lMensagem.Caption := arrMsg[1].Replace('|', sLineBreak);
               fMensagem.ShowModal;
             end;
@@ -875,7 +847,7 @@ begin
         begin
           DoErro(arrMsg[1].Replace('|', sLineBreak));
           CriarFormMensagem;
-          fMensagem.Caption := arrMsg[0];
+          lblTitulo.Caption := arrMsg[0];
           lMensagem.Caption := arrMsg[1].Replace('|', sLineBreak);
           fMensagem.ShowModal;
 
@@ -884,7 +856,12 @@ begin
             CancelarFluxoMCInterativo();
             AdicionaLog('CancelarFluxoMCInterativo()', '');
             DoErro('Fluxo Cancelado');
-            ShowMessage('Fluxo Cancelado');
+            CriarFormMensagem;
+            lMensagem.Caption := 'Fluxo Cancelado';
+            bCancelar.Visible := False;
+            eResposta.Visible := false;
+            fMensagem.ShowModal;
+            DestruirMensagem;
             retMsg := '[ERROABORTAR]';
             DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
             AdicionaLog('Fluxo Cancelado', '');
@@ -905,15 +882,20 @@ begin
       if retMsg = '[ERROABORTAR]' then
       begin
         DoErro(retMsg);
-        ShowMessage(retMsg);
+        CriarFormMensagem;
+        lMensagem.Caption := retMsg;
+        bCancelar.Visible := False;
+        eResposta.Visible := false;
+        fMensagem.ShowModal;
+        DestruirMensagem;
       end;
 
       if retMsg = '[RETORNO]' then
       begin
 
-        var
-        auxUltimoRet: string := AguardaFuncaoMCInterativo();
-        DoLog(FormatDateTime('dd/MM/yyyy', mydata) + auxUltimoRet);
+//        var
+//        auxUltimoRet: string := AguardaFuncaoMCInterativo();
+//        DoLog(FormatDateTime('dd/MM/yyyy', mydata) + auxUltimoRet);
 
         if TarrMsg > 2 then
         begin
@@ -1036,7 +1018,12 @@ begin
     begin
       RetornaErro();
       DoErro('Erro - IniciaFuncaoMCInterativo - Codigo do Erro: ' + Retorno.ToString());
-      ShowMessage('Erro - IniciaFuncaoMCInterativo - Codigo do Erro: ' + Retorno.ToString());
+      CriarFormMensagem;
+      lMensagem.Caption := 'Erro - IniciaFuncaoMCInterativo - Codigo do Erro: ' + Retorno.ToString();
+      bCancelar.Visible := False;
+      eResposta.Visible := false;
+      fMensagem.ShowModal;
+      DestruirMensagem;
       AdicionaLog('Erro - IniciaFuncaoMCInterativo', '');
     end
   end
@@ -1077,154 +1064,5 @@ begin
 
 end;
 
-{ TFormMensagem }
-
-procedure TFormMensagem.BotaoCancelarClick(Sender: TObject);
-begin
-  ModalResult := mrCancel;
-end;
-
-procedure TFormMensagem.BotaoOkClick(Sender: TObject);
-begin
-  ModalResult := mrOk;
-end;
-
-constructor TFormMensagem.Create(AOwner: TComponent);
-begin
-     inherited Create(AOwner);
-  // Configurações do Formulário
-  BorderIcons  := [];
-  BorderStyle  := bsDialog;
-  ClientHeight := 245;
-  ClientWidth  := 564;
-  Color        := clBtnFace;
-  Font.Name    := 'Tahoma';
-  Font.Size    := 8;
-  KeyPreview   := True;
-  Position     := poScreenCenter;
-  Caption      := '';
-
-  // Painel Título
-  FpnTitulo := TPanel.Create(Self);
-  with FpnTitulo do
-  begin
-    Parent := Self;
-    Left := 0;
-    Top := 0;
-    Width := 564;
-    Height := 46;
-    Align := alTop;
-    ParentBackground := False;
-    ParentFont := False;
-    StyleElements := [];
-  end;
-
-  // Shape do Título
-  FshpTitulo := TShape.Create(FpnTitulo);
-  with FshpTitulo do
-  begin
-    Parent := FpnTitulo;
-    Align := alClient;
-    Brush.Color := 10455853;
-    Pen.Color   := 6403220;
-    Pen.Style   := psDot;
-  end;
-
-  // Label Título
-  FlblTitulo := TLabel.Create(FpnTitulo);
-  with FlblTitulo do
-  begin
-    Name := 'lbltitulo';
-    Parent := FpnTitulo;
-    Align := alClient;
-    Alignment := taCenter;
-    Caption := 'Mensagem';
-    Font.Name := 'Consolas';
-    Font.Size := 14;
-    Font.Color := clWhite;
-    Layout := tlCenter;
-    ParentFont := False;
-    StyleElements := [];
-  end;
-
-  // Painel Mensagem
-  FpnMensagem := TPanel.Create(Self);
-  with FpnMensagem do
-  begin
-    Parent := Self;
-    Align := alClient;
-    BevelInner := bvSpace;
-    BevelKind := bkFlat;
-    BevelOuter := bvLowered;
-    Font.Name := 'Tahoma';
-    Font.Size := 12;
-    ParentFont := False;
-    StyleElements := [];
-  end;
-
-  // Label Mensagem
-  FlMensagem := TLabel.Create(FpnMensagem);
-  with FlMensagem do
-  begin
-    Parent := FpnMensagem;
-    Align := alClient;
-    Alignment := taCenter;
-    WordWrap := True;
-    Layout := tlCenter;
-    Caption := '';
-    Font.Name := 'Arial';
-    Font.Size := 10;
-    ParentFont := False;
-    StyleElements := [];
-  end;
-
-  // Painel Botões
-  FpnBotoes := TPanel.Create(Self);
-  with FpnBotoes do
-  begin
-    Parent := Self;
-    Align := alBottom;
-    Height := 45;
-    BevelOuter := bvNone;
-    ParentBackground := False;
-    ParentFont := False;
-  end;
-
-  // Botão OK
-  FbOK := TButton.Create(FpnBotoes);
-  with FbOK do
-  begin
-    Parent := FpnBotoes;
-    Align := alLeft;
-    Width := 100;
-    Caption := 'Ok';
-    OnClick := BotaoOkClick;
-    Cursor := crHandPoint;
-  end;
-
-  // Botão Cancelar
-  FbCancelar := TButton.Create(FpnBotoes);
-  with FbCancelar do
-  begin
-    Parent := FpnBotoes;
-    Align := alRight;
-    Width := 100;
-    Caption := 'Cancelar (Esc)';
-    OnClick := BotaoCancelarClick;
-    Cursor := crHandPoint;
-  end;
-
-  // Caixa de Resposta
-  FeResposta := TEdit.Create(FpnMensagem);
-  with FeResposta do
-  begin
-    Parent := FpnMensagem;
-    Align := alBottom;
-    Width := 417;
-    Height := 21;
-    TabOrder := 0;
-  end;
-
-end;
-
 end.
+
