@@ -791,7 +791,27 @@ begin
           else
           begin
             respFMsg := PAnsiChar(AnsiString(eResposta.Text));
-            ContinuaFuncaoMCInterativo(respFMsg);
+
+            if (Pos('ERRO', UpperCase(respFMsg)) <> 0) or
+               (Pos('MAL', UpperCase(respFMsg)) <> 0) or
+               (Pos('CANCELADO', UpperCase(respFMsg)) <> 0)  then
+            begin
+              CancelarFluxoMCInterativo();
+              AdicionaLog('CancelarFluxoMCInterativo()', '');
+              DoErro('Fluxo Cancelado');
+              CriarFormMensagem;
+              lMensagem.Caption := 'Fluxo Cancelado';
+              bCancelar.Visible := False;
+              eResposta.Visible := false;
+              fMensagem.ShowModal;
+              DestruirMensagem;
+              retMsg := '[ERROABORTAR]';
+              DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
+              AdicionaLog('Fluxo Cancelado', '');
+            END ELSE begin
+              ContinuaFuncaoMCInterativo(respFMsg);
+            end;
+
           end;
         end;
 
@@ -851,26 +871,19 @@ begin
           lMensagem.Caption := arrMsg[1].Replace('|', sLineBreak);
           fMensagem.ShowModal;
 
-          if fMensagem.ModalResult = mrCancel then
-          begin
-            CancelarFluxoMCInterativo();
-            AdicionaLog('CancelarFluxoMCInterativo()', '');
-            DoErro('Fluxo Cancelado');
-            CriarFormMensagem;
-            lMensagem.Caption := 'Fluxo Cancelado';
-            bCancelar.Visible := False;
-            eResposta.Visible := false;
-            fMensagem.ShowModal;
-            DestruirMensagem;
-            retMsg := '[ERROABORTAR]';
-            DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
-            AdicionaLog('Fluxo Cancelado', '');
-          end
-          else
-          begin
-            respFMsg := PAnsiChar(AnsiString(eResposta.Text));
-            ContinuaFuncaoMCInterativo(respFMsg);
-          end;
+          CancelarFluxoMCInterativo();
+          AdicionaLog('CancelarFluxoMCInterativo()', '');
+          DoErro('Fluxo Cancelado');
+          CriarFormMensagem;
+          lMensagem.Caption := 'Fluxo Cancelado';
+          bCancelar.Visible := False;
+          eResposta.Visible := false;
+
+          DestruirMensagem;
+          retMsg := '[ERROABORTAR]';
+          DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
+          AdicionaLog('Fluxo Cancelado', '');
+
         end;
         DestruirMensagem;
 
@@ -887,6 +900,9 @@ begin
         bCancelar.Visible := False;
         eResposta.Visible := false;
         fMensagem.ShowModal;
+        CancelarFluxoMCInterativo();
+        AdicionaLog('CancelarFluxoMCInterativo()', '');
+        DoErro('Fluxo Cancelado');
         DestruirMensagem;
       end;
 
