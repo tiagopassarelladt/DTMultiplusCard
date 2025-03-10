@@ -73,6 +73,7 @@ type TMultRetorno = class(TPersistent)
     FCAMPO0505: string;
     FCAMPO0135: string;
     FCAMPO0132: string;
+    FCAMPO2620: string;
 
    published
 
@@ -97,6 +98,7 @@ type TMultRetorno = class(TPersistent)
     property COD_TIPO_TRANSACAO    : string read FCAMPO0100;
     property DESC_TIPO_TRANSACAO   : string read FCAMPO0101;
     property Comprovante           : string read FCAMPO0121;
+    property E2E                   : string read FCAMPO2620;
 end;
 
 type
@@ -313,6 +315,7 @@ begin
   FRetornoPgto.FCAMPO0100 := ExtrairValor(ATexto, 'CAMPO0100=(\d+)');
   FRetornoPgto.FCAMPO0101 := ExtrairValor(ATexto, 'CAMPO0101=([^#]+)');
   FRetornoPgto.FCAMPO0121 := ExtrairValor(ATexto, 'CAMPO0121=([^#]+)');
+  FRetornoPgto.FCAMPO2620 := ExtrairValor(ATexto, 'CAMPO2620=([^#]+)');
 end;
 
 constructor TDTMultiplusCard.Create(Aowner: TComponent);
