@@ -778,7 +778,12 @@ begin
             CancelarFluxoMCInterativo();
             AdicionaLog('CancelarFluxoMCInterativo()', '');
             DoErro('Fluxo Cancelado');
-            ShowMessage('Fluxo Cancelado');
+            CriarFormMensagem;
+            lMensagem.Caption := 'Fluxo Cancelado';
+            bCancelar.Visible := False;
+            eResposta.Visible := false;
+            fMensagem.ShowModal;
+            DestruirMensagem;
             retMsg := '[ERROABORTAR]';
             DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
             AdicionaLog('Fluxo Cancelado', '');
@@ -786,7 +791,27 @@ begin
           else
           begin
             respFMsg := PAnsiChar(AnsiString(eResposta.Text));
-            ContinuaFuncaoMCInterativo(respFMsg);
+
+            if (Pos('ERRO', UpperCase(respFMsg)) <> 0) or
+               (Pos('MAL', UpperCase(respFMsg)) <> 0) or
+               (Pos('CANCELADO', UpperCase(respFMsg)) <> 0)  then
+            begin
+              CancelarFluxoMCInterativo();
+              AdicionaLog('CancelarFluxoMCInterativo()', '');
+              DoErro('Fluxo Cancelado');
+              CriarFormMensagem;
+              lMensagem.Caption := 'Fluxo Cancelado';
+              bCancelar.Visible := False;
+              eResposta.Visible := false;
+              fMensagem.ShowModal;
+              DestruirMensagem;
+              retMsg := '[ERROABORTAR]';
+              DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
+              AdicionaLog('Fluxo Cancelado', '');
+            END ELSE begin
+              ContinuaFuncaoMCInterativo(respFMsg);
+            end;
+
           end;
         end;
 
@@ -804,7 +829,12 @@ begin
             CancelarFluxoMCInterativo();
             AdicionaLog('CancelarFluxoMCInterativo()', '');
             DoErro('Fluxo Cancelado');
-            ShowMessage('Fluxo Cancelado');
+            CriarFormMensagem;
+            lMensagem.Caption := 'Fluxo Cancelado';
+            bCancelar.Visible := False;
+            eResposta.Visible := false;
+            fMensagem.ShowModal;
+            DestruirMensagem;
             retMsg := '[ERROABORTAR]';
             DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
             AdicionaLog('Fluxo Cancelado', '');
@@ -841,21 +871,19 @@ begin
           lMensagem.Caption := arrMsg[1].Replace('|', sLineBreak);
           fMensagem.ShowModal;
 
-          if fMensagem.ModalResult = mrCancel then
-          begin
-            CancelarFluxoMCInterativo();
-            AdicionaLog('CancelarFluxoMCInterativo()', '');
-            DoErro('Fluxo Cancelado');
-            ShowMessage('Fluxo Cancelado');
-            retMsg := '[ERROABORTAR]';
-            DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
-            AdicionaLog('Fluxo Cancelado', '');
-          end
-          else
-          begin
-            respFMsg := PAnsiChar(AnsiString(eResposta.Text));
-            ContinuaFuncaoMCInterativo(respFMsg);
-          end;
+          CancelarFluxoMCInterativo();
+          AdicionaLog('CancelarFluxoMCInterativo()', '');
+          DoErro('Fluxo Cancelado');
+          CriarFormMensagem;
+          lMensagem.Caption := 'Fluxo Cancelado';
+          bCancelar.Visible := False;
+          eResposta.Visible := false;
+
+          DestruirMensagem;
+          retMsg := '[ERROABORTAR]';
+          DoLog(FormatDateTime('dd/MM/yyyy', mydata) + ' - Fluxo Cancelado');
+          AdicionaLog('Fluxo Cancelado', '');
+
         end;
         DestruirMensagem;
 
@@ -867,15 +895,19 @@ begin
       if retMsg = '[ERROABORTAR]' then
       begin
         DoErro(retMsg);
-        ShowMessage(retMsg);
+        CriarFormMensagem;
+        lMensagem.Caption := retMsg;
+        bCancelar.Visible := False;
+        eResposta.Visible := false;
+        fMensagem.ShowModal;
+        CancelarFluxoMCInterativo();
+        AdicionaLog('CancelarFluxoMCInterativo()', '');
+        DoErro('Fluxo Cancelado');
+        DestruirMensagem;
       end;
 
       if retMsg = '[RETORNO]' then
       begin
-
-        var
-        auxUltimoRet: string := AguardaFuncaoMCInterativo();
-        DoLog(FormatDateTime('dd/MM/yyyy', mydata) + auxUltimoRet);
 
         if TarrMsg > 2 then
         begin
@@ -923,7 +955,6 @@ begin
             Result := True;
             DoComprovante(strCupom);
         end;
-        //DoComprovante(System.String.Join(sLineBreak, arrMsg));
 
         retFim := 0;
 
@@ -932,7 +963,7 @@ begin
           if confirmar then
           begin
             retFim := FinalizaFuncaoMCInterativo(98,
-                      PAnsiChar(AnsiString(FMultiConfig.FCNPJ)),
+                      PAnsiChar(AnsiString(FMultiConfig.FCNPJ.Replace('.','').Replace('-','').Replace('/','').Replace(' ',''))),
                       parcela,
                       PAnsiChar(AnsiString(cupom)),
                       PAnsiChar(AnsiString(valor)),
@@ -940,14 +971,13 @@ begin
                       PAnsiChar(AnsiString(FMultiConfig.FData)),
                       PAnsiChar(AnsiString(FMultiConfig.FPDV)),
                       PAnsiChar(AnsiString(FMultiConfig.FCodLoja)),
-                      StrToInt(FMultiConfig.FComunicacao.PadLeft(1,'0')),
+                      0,
                       '');
-
           end
           else
           begin
             retFim := FinalizaFuncaoMCInterativo(99,
-                      PAnsiChar(AnsiString(FMultiConfig.FCNPJ)),
+                      PAnsiChar(AnsiString(FMultiConfig.FCNPJ.Replace('.','').Replace('-','').Replace('/','').Replace(' ',''))),
                       parcela,
                       PAnsiChar(AnsiString(cupom)),
                       PAnsiChar(AnsiString(valor)),
@@ -955,7 +985,7 @@ begin
                       PAnsiChar(AnsiString(FMultiConfig.FData)),
                       PAnsiChar(AnsiString(FMultiConfig.FPDV)),
                       PAnsiChar(AnsiString(FMultiConfig.FCodLoja)),
-                      StrToInt(FMultiConfig.FComunicacao.PadLeft(1,'0')),
+                      0,
                       '');
           end;
 
@@ -998,7 +1028,12 @@ begin
     begin
       RetornaErro();
       DoErro('Erro - IniciaFuncaoMCInterativo - Codigo do Erro: ' + Retorno.ToString());
-      ShowMessage('Erro - IniciaFuncaoMCInterativo - Codigo do Erro: ' + Retorno.ToString());
+      CriarFormMensagem;
+      lMensagem.Caption := 'Erro - IniciaFuncaoMCInterativo - Codigo do Erro: ' + Retorno.ToString();
+      bCancelar.Visible := False;
+      eResposta.Visible := false;
+      fMensagem.ShowModal;
+      DestruirMensagem;
       AdicionaLog('Erro - IniciaFuncaoMCInterativo', '');
     end
   end

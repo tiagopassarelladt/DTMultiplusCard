@@ -73,6 +73,7 @@ type TMultRetorno = class(TPersistent)
     FCAMPO0505: string;
     FCAMPO0135: string;
     FCAMPO0132: string;
+    FCAMPO2620: string;
 
    published
 
@@ -82,6 +83,7 @@ type TMultRetorno = class(TPersistent)
     property COD_REDE              : string read FCAMPO0131;
     property COD_AUTORIZACAO       : string read FCAMPO0135;
     property NSU                   : string read FCAMPO0133;
+    property E2E                   : string read FCAMPO2620;
     property QTDE_PARCELAS         : string read FCAMPO0505;
     property TAXA_SERVICO          : string read FCAMPO0504;
     property BIN_CARTAO            : string read FCAMPO0136;
@@ -298,6 +300,7 @@ begin
   FRetornoPgto.FCAMPO0131 := ExtrairValor(ATexto, 'CAMPO0131=(\d+)');
   FRetornoPgto.FCAMPO0135 := ExtrairValor(ATexto, 'CAMPO0135=(\d+)');
   FRetornoPgto.FCAMPO0133 := ExtrairValor(ATexto, 'CAMPO0133=(\d+)');
+  FRetornoPgto.FCAMPO2620 := ExtrairValor(ATexto, 'CAMPO2620=([^#]+)');
   FRetornoPgto.FCAMPO0505 := ExtrairValor(ATexto, 'CAMPO0505=(\d+)');
   FRetornoPgto.FCAMPO0504 := ExtrairValor(ATexto, 'CAMPO0504=([\d,]+)');
   FRetornoPgto.FCAMPO0136 := ExtrairValor(ATexto, 'CAMPO0136=(\d+)');
