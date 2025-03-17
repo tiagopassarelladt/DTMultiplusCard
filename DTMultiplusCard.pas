@@ -931,7 +931,7 @@ begin
 
           var
           auxCupom := strCupom + '-------------------------------' + sLineBreak + sLineBreak + strCupom;
-          nsuRet   := String(arrMsg[5].Replace('CAMPO0133=', ''));
+          nsuRet   := String(arrMsg[6].Replace('CAMPO0133=', ''));
 
         end;
 
