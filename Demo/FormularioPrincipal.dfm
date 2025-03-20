@@ -620,7 +620,7 @@ object FormPrincipal: TFormPrincipal
     OnQrCode = DTMultiplusCard1QrCode
     OnCPF = DTMultiplusCard1CPF
     OnErro = DTMultiplusCard1Erro
-    Left = 336
-    Top = 280
+    Left = 312
+    Top = 256
   end
 end

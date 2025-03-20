@@ -614,12 +614,13 @@ object FormPrincipal: TFormPrincipal
     StyleElements = [seFont, seBorder]
   end
   object DTMultiplusCard1: TDTMultiplusCard
+    LogSimplificado = False
     OnLog = DTMultiplusCard1Log
     OnComprovante = DTMultiplusCard1Comprovante
     OnQrCode = DTMultiplusCard1QrCode
     OnCPF = DTMultiplusCard1CPF
     OnErro = DTMultiplusCard1Erro
-    Left = 312
-    Top = 248
+    Left = 336
+    Top = 280
   end
 end

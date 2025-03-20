@@ -931,7 +931,11 @@ begin
 
           var
           auxCupom := strCupom + '-------------------------------' + sLineBreak + sLineBreak + strCupom;
-          nsuRet   := String(arrMsg[6].Replace('CAMPO0133=', ''));
+
+          if ((op = tpMult_PSP_CLIENTE) or (op = tpMult_CANCELAR_ESTORNO_PIX)) then
+           nsuRet := String(arrMsg[5].Replace('CAMPO0133=', ''))
+          else
+           nsuRet := String(arrMsg[6].Replace('CAMPO0133=', ''));
 
         end;
 
